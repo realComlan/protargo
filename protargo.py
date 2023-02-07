@@ -26,6 +26,5 @@ class Explainer:
   def __init__(self, strategy=None):
       self.strategy = strategy
       
-      
 class NLPArgumentGraphBuilder:
   pass
