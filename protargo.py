@@ -26,7 +26,7 @@ class SolverManager:
 					self.set_problem(problem)
 				elif argv[i] == '-f':
 					filename = argv[i+1]
-					self.get_framework_from_file(filename)
+					self.get_framework_from_apx_file(filename)
 				elif argv[i] == '-a':
 					argument = argv[i+1]
 					self.set_argument(argument)
