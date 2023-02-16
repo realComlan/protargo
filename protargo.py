@@ -9,7 +9,7 @@ class SolverManager:
 	def __init__(self):
 		self.problem = None
 		self.argument = None
-		self.solver = SATBasedSolver()
+		self.session = DebateSession()
 		self.parse_inputs()
 
 	def parse_inputs(self):
@@ -62,33 +62,40 @@ class SolverManager:
 	def solve(self):
 		print(self.solver.solve(self.problem, self.argument))
 
-
 class Argument:
-  pass
+  def __init__(self):
+			pass
 
 class ArgumentGraph:
-  pass
+  def __init__(self):
+			pass
 
 class UniversalGraph(ArgumentGraph):
-  pass
+  def __init__(self):
+			pass
 
 class MergedGraph(ArgumentGraph):
-  pass
+  def __init__(self):
+			pass
 
 class DebateSession:
-  pass
+  def __init__(self):
+			pass
 
 class Debater:
-  pass
+  def __init__(self):
+			pass
 
 class ExplainationStrategy:
-  pass
+  def __init__(self):
+			pass
 
 class Explainer:
   def __init__(self, strategy=None):
       self.strategy = strategy
       
 class NLPArgumentGraphBuilder:
-  pass
+		def __init__(self):
+			pass
   
 
