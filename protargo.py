@@ -63,7 +63,7 @@ class SolverManager:
 		print(self.solver.solve(self.problem, self.argument))
 
 class DebateSession:
-  def __init__(self):
+		def __init__(self):
 			pass
 			
 class Argument:
