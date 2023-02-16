@@ -75,8 +75,14 @@ class ArgumentGraph:
 			pass
 
 class UniversalGraph(ArgumentGraph):
-  def __init__(self):
-			pass
+			def __init__(self):
+						pass
+			
+			def random_generate(self, seed=2023):
+						pass
+						
+			def save(self, file=None, graph=None):
+						pass
 
 class MergedGraph(ArgumentGraph):
   def __init__(self):
