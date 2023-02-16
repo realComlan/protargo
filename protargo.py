@@ -62,6 +62,10 @@ class SolverManager:
 	def solve(self):
 		print(self.solver.solve(self.problem, self.argument))
 
+class DebateSession:
+  def __init__(self):
+			pass
+			
 class Argument:
   def __init__(self):
 			pass
@@ -75,10 +79,6 @@ class UniversalGraph(ArgumentGraph):
 			pass
 
 class MergedGraph(ArgumentGraph):
-  def __init__(self):
-			pass
-
-class DebateSession:
   def __init__(self):
 			pass
 
