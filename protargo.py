@@ -1,5 +1,5 @@
-import nltk
 import networkx as nx
+import matplotlib.pyplot as plt
 
 class SolverManager:
 	instance = None
@@ -63,45 +63,74 @@ class SolverManager:
 		print(self.solver.solve(self.problem, self.argument))
 
 class DebateSession:
-		def __init__(self):
-			pass
+	def __init__(self):
+		pass
 			
 class Argument:
-  def __init__(self):
-			pass
+	def __init__(self):
+		pass
 
 class ArgumentGraph:
-  def __init__(self):
-			pass
+	def __init__(self, num_nodes=30):
+		self.num_nodes = num_nodes
+		self.G = None
+
+	def generate(self):
+		G = nx.random_tree(n=self.num_nodes, create_using=nx.DiGraph)
+                self.G = G.reverse()
+
+	def plot(self):
+		# Fruchterman-Reingold layout
+		pos = nx.spring_layout(G, seed=3068)  # Seed layout for reproducibility
+		fig, ax = plt.subplots()
+		nx.draw_networkx(G, pos=pos, ax=ax)
+		ax.set_title("Argumentation tree layout in topological order")
+		fig.tight_layout()
+		plt.show()
+		import time
+		fig.savefig("generated/Graphic{}.png".format(time.asctime()))
+
+	def save(self, filename="output.apx"):
+		pass
+
+		
 
 class UniversalGraph(ArgumentGraph):
-			def __init__(self):
-						pass
+	def __init__(self):
+		self.profile = None
 			
-			def random_generate(self, seed=2023):
-						pass
-						
-			def save(self, file=None, graph=None):
-						pass
-
+	def random_generate(self, num_nodes=100, random_seed=2023, compactness=10):
+		from numpy import random
+		random.seed(random_seed)
+		nodes = list(range(num_nodes))
+		nb_leaves = random.randint(num_nodes-1)
+		compactness = num_nodes / compactness
+		compactness = 1 if compactness < 1 else compactness
+		leaves_dist = []	
+		for i in range(nb_leaves):
+			max_path_length = random.randint(1, compactness)
+			path = random.randint(1, max_path_length)
+			leaves_dist.append(path)
+			
 class MergedGraph(ArgumentGraph):
-  def __init__(self):
-			pass
+	def __init__(self):
+		pass
 
 class Debater:
-  def __init__(self):
-			pass
+	def __init__(self):
+		pass
 
 class ExplainationStrategy:
-  def __init__(self):
-			pass
+	def __init__(self):
+		pass
 
 class Explainer:
-  def __init__(self, strategy=None):
-      self.strategy = strategy
+	def __init__(self, strategy=None):
+		self.strategy = strategy
       
-class NLPArgumentGraphBuilder:
-		def __init__(self):
-			pass
-  
 
+class Semantic:
+	pass
+
+class Agent:
+	pass
