@@ -1,16 +1,15 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 
-class SolverManager:
+class DebateManager:
 	instance = None
 	help_string = """
-	This is Argumental 1.0. Thanks for using it.	
+	This is Protargo 1.0. Thanks for using it.	
 	"""
-	def __init__(self):
-		self.problem = None
-		self.argument = None
-		self.session = DebateSession()
-		self.parse_inputs()
+	def __init__(self, num_debaters=5, num_arguments=50, auto=True):
+		self.universe_graph = ArgumentGraph(num_arguments, auto=auto)
+		self.num_debaters = num_debaters
+		self.create_debators(auto=auto)
 
 	def parse_inputs(self):
 		import sys
@@ -48,23 +47,21 @@ class SolverManager:
 					self.solver.add_attack((args[0],args[1]))
 				line = f.readline()
 	
-	def set_problem(self, problem):
-		self.problem = problem
-
-	def set_argument(self, argument):
-		self.argument = argument
-
 	def get_instance():
 		if not SolverManager.instance:
 			SolverManager.instance = SolverManager()
 		return SolverManager.instance
 	
-	def solve(self):
-		print(self.solver.solve(self.problem, self.argument))
-
-class DebateSession:
-	def __init__(self):
+	def begin(self):
 		pass
+
+	def arguments_impact(self):
+		pass
+
+class DebateManager:
+	def __init__(self, num_arguments, num_debaters):
+		self.univers_graph = ArgumentGraph(num_arguments)
+		self.num_debaters = num_debaters
 			
 class Argument:
 	def __init__(self):
@@ -75,25 +72,31 @@ class ArgumentGraph:
 		self.num_nodes = num_nodes
 		self.G = None
 
-	def generate(self):
-		G = nx.random_tree(n=self.num_nodes, create_using=nx.DiGraph)
-                self.G = G.reverse()
+	def generate(self, seed=0):
+		G = nx.random_tree(n=self.num_nodes, seed=seed, create_using=nx.DiGraph)
+		self.G = G.reverse()
+		self.adjacency_list = nx.generate_adjlist(self.G)
+		return self
 
 	def plot(self):
 		# Fruchterman-Reingold layout
-		pos = nx.spring_layout(G, seed=3068)  # Seed layout for reproducibility
+		pos = nx.spring_layout(self.G, seed=3068)  # Seed layout for reproducibility
 		fig, ax = plt.subplots()
-		nx.draw_networkx(G, pos=pos, ax=ax)
-		ax.set_title("Argumentation tree layout in topological order")
+		nx.draw_networkx(self.G, pos=pos, ax=ax)
+		ax.set_title("Graph")
 		fig.tight_layout()
 		plt.show()
 		import time
-		fig.savefig("generated/Graphic{}.png".format(time.asctime()))
+		fig.savefig("generated/Graphic - {}.png".format(time.asctime()))
 
 	def save(self, filename="output.apx"):
 		pass
 
-		
+	def add_argument(self, auto=True):
+		pass
+
+	def add_attack(self, a, b):
+		pass
 
 class UniversalGraph(ArgumentGraph):
 	def __init__(self):
@@ -128,9 +131,34 @@ class Explainer:
 	def __init__(self, strategy=None):
 		self.strategy = strategy
       
-
 class Semantic:
 	pass
 
 class Agent:
-	pass
+
+	def __init__(self, public_graph):
+		# this value determines the confort interval of this agent
+		self.openness = 0
+		self.personal_graph = None
+		self.public_graph = public_graph
+
+	def set_openness(self, openness):
+		self.openness = openness
+		return self
+	
+	def set_public_graph(self, public_graph):
+		self.public_graph = public_graph
+		return self
+
+	def set_personal_graph(self, personal_graph):
+		self.personal_graph = personal_graph
+		return self
+
+	def generate_personal_graph(self, personal_graph):
+		self.personal_graph = personal_graph
+		return self
+
+	def play(self):
+		pass
+
+	def hypothetic_value(self, 	
