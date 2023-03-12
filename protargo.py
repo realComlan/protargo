@@ -26,23 +26,27 @@ class DebateContext:
 
 	def __init__(self):
 		self.protocol_pool = ProtocolPool()
-		seed = int(time()//1)
-		self.build_universal_graph(nb_branch_star_min=6, \
-					nb_branch_star_max=15, \
-					nb_arg_tree_min=1, \
-					nb_arg_tree_max=60, seed=seed)
-		self.build_public_graph()
 
-	def build(self, num_agents=5):
+	def build(self, nb_agents=5, max_nb_root_branch=5, branch_trees_max_size=100):
+		seed = int(time()//1)
+		self.build_universal_graph(nb_branch_star_min=1, \
+					nb_branch_star_max=max_nb_root_branch, \
+					nb_arg_tree_min=1, \
+					nb_arg_tree_max=branch_trees_max_size, \
+					seed=seed)
+		self.build_public_graph()
 		self.semantic = BasicSemantic()
 		self.semantic.set_public_graph(self.public_graph)
-		self.agent_pool = AgentPool(num_agents=num_agents)
+		self.agent_pool = AgentPool(num_agents=nb_agents)
 		self.agent_pool.build()
 
 	def loop(self):
 		while self.protocol_pool.can_play():
-			plays = self.agent_pool.play()
-			self.semantic.update_public_graph(plays)
+			moves = self.agent_pool.play()
+			for move in moves:
+				self.public_graph.add_edge(move)
+				self.universal_graph.nodes[move[0]]["played"] = True
+				self.semantic.update_public_graph(self.public_graph, move)
 
 	def get_instance():
 		if not DebateContext.instance:
@@ -55,10 +59,17 @@ class DebateContext:
 								nb_branch_star_max, \
 								nb_arg_tree_min, \
 								nb_arg_tree_max, seed)
+		for u in self.universal_graph:
+			# Whether this argument has been played already
+			self.universal_graph.nodes[u]["played"] = False
+			# The distance to the issue. Useful to optimize the choice of best move.
+			self.universal_graph.nodes[u]["dist_to_issue"] = nx.shortest_path_length(self.universal_graph, u, 0)
+		self.universal_graph.nodes[0]["played"] = True
 
 	def build_public_graph(self, nb_branch_star_min=6, nb_branch_star_max=15, nb_arg_tree_min=1, nb_arg_tree_max=6, seed=0):
 		self.public_graph = nx.DiGraph()
 		self.public_graph.add_node(0)
+		self.public_graph.nodes[0]["weight"] = 1
 
 	def get_protocol(self):
 		return self.protocol
@@ -74,6 +85,12 @@ class DebateContext:
 
 	def set_semantic(self, semantic):
 		self.semantic = semantic
+
+	def get_current_issue_value(self):
+		return self.public_graph.nodes[0]["weight"]
+
+	def is_an_attack_on_issue(self, arg):
+		return self.universal_graph.nodes[arg]["dist_to_issue"]%2 == 1
 
 
 #################################
@@ -92,16 +109,19 @@ class AgentPool:
 			agent.generate_own_graph(seed)
 			self.agents.append(agent)
 			seed += 1
+		
+		print("Agents Pool")
+		for agent in self.agents:
+			print(agent)
 
 	def play(self):
-		plays = []
+		moves = []
 		for agent in self.agents:
-			play = agent.play()
+			move = agent.play()
 			# (s)he will pass. Who is next...
-			if not play: continue
-			self.public_graph.add_edge(play)
-			plays.append(play)
-		return plays
+			if not move: continue
+			moves.append(move)
+		return moves
 
 	def __len__(self):
 		return len(self.agents)
@@ -138,17 +158,16 @@ class AbstractAgent:
 				predecessor, successor = predecessor, successors[0]
 				self.own_graph.add_edge(predecessor, successor)
 				predecessor, successors = successor, list(UG.successors(successor))
-		for u in self.own_graph.nodes:
-			# Whether this argument has been played already
-			self.own_graph.nodes[u]["played"] = False
-			# The distance to the issue. Useful to optimize the choice of best move.
-			self.own_graph.nodes[u]["dist_to_issue"] = nx.shortest_path_length(self.own_graph, u, 0)
-		self.own_graph.nodes[0]["played"] = True
 		BasicSemantic.backward_update_graph(self.own_graph)
+		print(self.own_graph.nodes(data=True))
 		self.protocol.set_own_graph(self.own_graph)
+		self.protocol.goal_issue_value = self.own_graph.nodes[0]["weight"]
 
 	def play(self):
 		return self.protocol.best_move() 
+
+	def __str__(self):
+		return "{} [ goal_value : {} ]".format(self.name, self.protocol.goal_issue_value)
 
 class BasicAgent(AbstractAgent):
 
@@ -186,6 +205,7 @@ class AbstractProtocol:
 		self.context = DebateContext.get_instance()
 		self.public_graph = None
 		self.own_graph = None
+		self.goal_issue_value = 0
 
 	def possible_moves(self):
 		pass
@@ -216,23 +236,40 @@ class BasicProtocol(AbstractProtocol):
 	def __init__(self):
 		super().__init__()
 		self.name = 'BasicProtocol'
-		self.p_moves = []
+		self.possible_moves = []
 
-	def possible_moves(self):
-		self.p_moves = []
-		for (u, v) in self.own_graph.edges():
-			pos = [u for u in self.own_graph.nodes \
-				if not self.own_graph.nodes[u]["played"] \
-				and v in self.public_graph.nodes]
-			self.p_moves.extend(pos)
-
+	def generate_possible_moves(self):
+		self.possible_moves = [(u, v) for (u, v) in self.own_graph.edges \
+				if u in self.own_graph \
+					and not self.context.universal_graph.nodes[u]["played"] \
+					and v in self.public_graph.nodes]
+		print("{} [ possible moves: {} ]".format(self.name, self.possible_moves))
+		print("")
+			
 	def best_move(self):
-		self.possible_moves()
-		for u in self.p_moves:
-			pass
+		self.generate_possible_moves()
+		best_move = None
+		attacking = True
+
+		if self.context.get_current_issue_value() == self.goal_issue_value:
+			return None
+		elif self.context.get_current_issue_value() > self.goal_issue_value:
+			attacking = True
+		else:
+			attacking = False
+
+		for attacker, attacked in self.possible_moves:
+			if attacking and not self.context.is_an_attack_on_issue(attacker):
+				continue	
+			if not attacking and self.context.is_an_attack_on_issue(attacker):
+				continue	
+			h_v = BasicSemantic.hypothetic_value(self.public_graph, (attacker, attacked))
+			# TODO compute best move
+			
+		return best_move
 
 	def can_play(self):
-		return not self.p_moves
+		return not self.possible_moves
 
 
 #################################
@@ -252,24 +289,42 @@ class BasicSemantic(AbstractSemantic):
 	def __init__(self):
 		super().__init__()
 
-	def forward_update_graph(graph, plays):
+	def forward_update_graph(graph, move):
 		"""
 		Updating the graph weights from the leaves in.
+
 		For each (u, v):
 			- u is a new leaf which is attacking
 			- v an argument already present in the graph
 		"""
-		for (u, v) in plays:
-			graph.nodes[v]["weight"] = 1/(2+sum([graph.nodes[_]["weight"] for _ in graph.predecessors(v)]))
-			v = list(graph.successors(v))
-			while v:
-				graph.nodes[v]["weight"] = 1/(2+sum([graph.nodes[_]["weight"] for _ in graph.predecessors(v[0])]))
-				v = list(graph.successors(v[0]))
+		u, v = move
+		graph.nodes[u]["weight"] = 1
+		graph.nodes[v]["weight"] = 1/(1+sum([graph.nodes[_]["weight"] for _ in graph.predecessors(v)]))
+		v = list(graph.successors(v))[0]
+		while v:
+			graph.nodes[v]["weight"] = 1/(1+sum([graph.nodes[_]["weight"] for _ in graph.predecessors(v)]))
+			v = list(graph.successors(v))[0]
 
-	def hypothetic_value(graph, arg):
-		pass
+	def hypothetic_value(graph, move):
+		"""
+		Checking  the value of the issue if we play argument arg
+
+		For each (u, v):
+			- u is a new leaf which is being examined for next move
+			- v an argument already present in the graph
+		"""
+		weights = dict()
+		u, v = move
+		weights[v] = 1/(2+sum([graph.nodes[_]["weight"] for _ in graph.predecessors(v)]))
+		u, v = v, list(graph.successors(v))
+		while v:
+			v = v[0]
+			s = weights[u] + sum([graph.nodes[_]["weight"] for _ in graph.predecessors(v) if _ != u])
+			weights[v] = 1 / (1+s)
+			u, v = v, list(graph.successors(v))[0]
+		return weights[0]
 			
-	def update_public_graph(self, plays):
+	def update_public_graph(graph, moves):
 		"""
 		Updating the graph weights from the leaves in
 		"""
