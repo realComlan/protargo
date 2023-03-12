@@ -1,5 +1,9 @@
 import networkx as nx
 import matplotlib.pyplot as plt
+import sys
+import re
+import time
+from numpy import random
 
 class DebateManager:
 	instance = None
@@ -12,7 +16,6 @@ class DebateManager:
 		self.create_debators(auto=auto)
 
 	def parse_inputs(self):
-		import sys
 		argv = sys.argv[1:]
 		try:
 			i=0
@@ -35,7 +38,6 @@ class DebateManager:
 			print(SolverManager.help_string)
 
 	def get_framework_from_apx_file(self, filename):
-		import re
 		with open(filename) as f:
 			line = f.readline()
 			while line:
@@ -68,14 +70,20 @@ class Argument:
 		pass
 
 class ArgumentGraph:
-	def __init__(self, num_nodes=30):
+	def __init__(self, num_nodes=10):
 		self.num_nodes = num_nodes
 		self.G = None
 
 	def generate(self, seed=0):
 		G = nx.random_tree(n=self.num_nodes, seed=seed, create_using=nx.DiGraph)
+		args = G.nodes()
+		attacks = G.reverse().edges()
+		print("args : =>",args)
+		print("relation attack : ",attacks)
 		self.G = G.reverse()
+		print(self.G)
 		self.adjacency_list = nx.generate_adjlist(self.G)
+		print("liste : ",self.adjacency_list)
 		return self
 
 	def plot(self):
@@ -86,7 +94,7 @@ class ArgumentGraph:
 		ax.set_title("Graph")
 		fig.tight_layout()
 		plt.show()
-		import time
+		
 		fig.savefig("generated/Graphic - {}.png".format(time.asctime()))
 
 	def save(self, filename="output.apx"):
@@ -103,7 +111,6 @@ class UniversalGraph(ArgumentGraph):
 		self.profile = None
 			
 	def random_generate(self, num_nodes=100, random_seed=2023, compactness=10):
-		from numpy import random
 		random.seed(random_seed)
 		nodes = list(range(num_nodes))
 		nb_leaves = random.randint(num_nodes-1)
@@ -161,4 +168,5 @@ class Agent:
 	def play(self):
 		pass
 
-	def hypothetic_value(self, 	
+	def hypothetic_value(self):
+		pass
