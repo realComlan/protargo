@@ -34,7 +34,7 @@ class DebateContext:
 		self.build_public_graph()
 
 	def build(self, num_agents=5):
-		self.semantic = AbstractSemantic()
+		self.semantic = BasicSemantic()
 		self.semantic.set_public_graph(self.public_graph)
 		self.agent_pool = AgentPool(num_agents=num_agents)
 		self.agent_pool.build()
@@ -87,10 +87,10 @@ class AgentPool:
 		self.num_agents = num_agents
 
 	def build(self, seed=0):
-		for _ in range(self.num_agents):
-			agent = BasicAgent()
+		for i in range(self.num_agents):
+			agent = BasicAgent('BasicAgent ' + str(i))
 			agent.generate_own_graph(seed)
-			self.agents.append(BasicAgent())
+			self.agents.append(agent)
 			seed += 1
 
 	def play(self):
@@ -103,12 +103,17 @@ class AgentPool:
 			plays.append(play)
 		return plays
 
+	def __len__(self):
+		return len(self.agents)
+
 class AbstractAgent:
 
-	def __init__(self):
+	def __init__(self, name):
 		self.own_graph = None
-		self.protocol = self.create_protocol()
+		self.name = name
 		self.context = DebateContext.get_instance()
+		self.protocol = self.create_protocol()
+		self.protocol.set_public_graph(self.context.public_graph)
 		self.context.protocol_pool.add(self.protocol)
 
 	def create_protocol(self):
@@ -143,12 +148,12 @@ class AbstractAgent:
 		self.protocol.set_own_graph(self.own_graph)
 
 	def play(self):
-		return self.protocol.best_move(self.own_graph) 
+		return self.protocol.best_move() 
 
 class BasicAgent(AbstractAgent):
 
-	def __init__(self):
-		super().__init__()
+	def __init__(self, name):
+		super().__init__(name)
 
 	def create_protocol(self):
 		return BasicProtocol()
@@ -172,10 +177,15 @@ class ProtocolPool:
 				return True
 		return False
 
+	def __len__(self):
+		return len(self.protocols)
+
 class AbstractProtocol:
 
 	def __init__(self):
 		self.context = DebateContext.get_instance()
+		self.public_graph = None
+		self.own_graph = None
 
 	def possible_moves(self):
 		pass
@@ -206,23 +216,23 @@ class BasicProtocol(AbstractProtocol):
 	def __init__(self):
 		super().__init__()
 		self.name = 'BasicProtocol'
-		self.possible_moves = []
+		self.p_moves = []
 
 	def possible_moves(self):
-		self.possible_moves = []
+		self.p_moves = []
 		for (u, v) in self.own_graph.edges():
 			pos = [u for u in self.own_graph.nodes \
 				if not self.own_graph.nodes[u]["played"] \
 				and v in self.public_graph.nodes]
-			self.possible_moves.extend(pos)
+			self.p_moves.extend(pos)
 
 	def best_move(self):
 		self.possible_moves()
-		for u in self.possible_moves:
+		for u in self.p_moves:
 			pass
 
 	def can_play(self):
-		return not self.possible_moves
+		return not self.p_moves
 
 
 #################################
@@ -233,6 +243,9 @@ class AbstractSemantic:
 
 	def __init__(self):
 		self.context = DebateContext.get_instance()
+
+	def set_public_graph(self, public_graph):
+                self.public_graph = public_graph
 
 class BasicSemantic(AbstractSemantic):
 
@@ -269,12 +282,8 @@ class BasicSemantic(AbstractSemantic):
 		Updating the graph weights from the issue out
 		"""
 		for u in graph.predecessors(root):
-			self.backward_update_graph(graph, u)
+			BasicSemantic.backward_update_graph(graph, u)
 		graph.nodes[root]["weight"] = 1/(1+sum([graph.nodes[u]["weight"] for u in graph.predecessors(root)]))
-
-	def set_public_graph(self, public_graph):
-                self.public_graph = public_graph
-
 
 
 ########################################
