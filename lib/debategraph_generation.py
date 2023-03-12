@@ -18,7 +18,7 @@ nb_arg_tree_max = 6
 # This list of list of elements allows the save of the content to build the csv file. this variable is only use for the benchmark generation.
 tab_csv = [["name","nb_arg","nb_branch_star"]]
 
-def debate_graph_generation():
+def debate_graph_generation(nb_branch_star_min=6, nb_branch_star_max=15, nb_arg_tree_min=1, nb_arg_tree_max=6, seed=0):
     """
     Generates a graph in the form of an online debate. This type of graph is characterised by a target 
     argument and several branches converging towards this argument. 
@@ -201,10 +201,10 @@ def stat(list_csv):
 if __name__ == "__main__":
     """
     Examples (if ./bench exists):
-        - python3 debategraph_generation.py
-        - python3 debategraph_generation.py -s 5
-        - python3 debategraph_generation.py -p ./bench
-        - python3 debategraph_generation.py -p ./bench -s 5
+        - python3.9 debategraph_generation.py
+        - python3.9 debategraph_generation.py -s 5
+        - python3.9 debategraph_generation.py -p ./bench
+        - python3.9 debategraph_generation.py -p ./bench -s 5
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", "--size", type=int, help="size of the benchmark (i.e. the number of debate graphs).")
