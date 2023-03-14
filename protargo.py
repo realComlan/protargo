@@ -42,10 +42,14 @@ class DebateContext:
 
 	def loop(self):
 		i = 0
-		while self.protocol_pool.can_play():
-			self.agent_pool.play()
+		debate_open = True
+		while debate_open:
+			print()
+			print("############     ROUND {}     #############".format(i+1))
+			print()
+			debate_open = self.agent_pool.play()
 			i+=1
-		print("Total rounds: {}.".format(i))
+		print("Debate finished in {} rounds.".format(i-1))
 		print("Final issue value: {}.".format(self.public_graph.nodes[0]["weight"]))
 
 	def get_instance():
@@ -106,25 +110,29 @@ class AgentPool:
 
 	def build(self, seed=0):
 		for i in range(self.num_agents):
-			agent = BasicAgent('BasicAgent ' + str(i))
+			agent = BasicAgent('Debator ' + str(i))
 			agent.generate_own_graph(seed)
 			self.agents.append(agent)
 			seed += 1
 		
-		print("Agents Pool")
+		print("########### AGENTS POOL OF {} DEBATORS ###########".format(len(self.agents)))
 		for agent in self.agents:
 			print(agent)
 		print("###################################")
 
 	def play(self):
+		someone_spoke = False
 		for agent in self.agents:
 			move = agent.play()
 			# (s)he will pass. Who is next...
 			if not move: continue
+			someone_spoke = True
 			u, v = move
+			print("{} say {} to attack {}.".format(agent.name, u, v))
 			self.context.public_graph.add_edge(u, v)
-			self.context.universal_graph.nodes[move[0]]["played"] = True
+			self.context.universal_graph.nodes[u]["played"] = True
 			self.context.semantic.update_public_graph(move)
+		return someone_spoke
 
 	def __len__(self):
 		return len(self.agents)
@@ -158,11 +166,11 @@ class AbstractAgent:
 			successors = list(UG.successors(u))
 			# while we haven't reached the issue (no successor)
 			while successors:
-				predecessor, successor = predecessor, successors[0]
+				successor = successors[0]
 				self.own_graph.add_edge(predecessor, successor)
 				predecessor, successors = successor, list(UG.successors(successor))
 		self.context.semantic.backward_update_graph(self.own_graph)
-		print(self.own_graph.nodes(data=True))
+		#print(nx.forest_str(self.own_graph))
 		self.protocol.set_own_graph(self.own_graph)
 		self.protocol.goal_issue_value = self.own_graph.nodes[0]["weight"]
 
@@ -246,8 +254,9 @@ class BasicProtocol(AbstractProtocol):
 				if u in self.own_graph \
 					and not self.context.universal_graph.nodes[u]["played"] \
 					and v in self.public_graph.nodes]
-		print("{} [ possible moves: {} ]".format(self.name, self.possible_moves))
-		print("")
+		# DEBUG
+		#print("{} [ possible moves: {} ]".format(self.name, self.possible_moves))
+		#print("")
 			
 	def best_move(self):
 		self.generate_possible_moves()
@@ -263,20 +272,18 @@ class BasicProtocol(AbstractProtocol):
 			attacking = False
 
 		for attacker, attacked in self.possible_moves:
-			print(attacker, " --> ", attacked)
+			#print(attacker, " --> ", attacked)
 			if attacking and not self.context.is_an_attack_on_issue(attacker):
-				print(attacker, " is attacking issue but I need to defend it")
+			#	print(attacker, " is attacking issue but I need to defend it")
 				continue	
 			if not attacking and self.context.is_an_attack_on_issue(attacker):
-				print(attacker, " is not attacking issue but I need to attack it")
+			#	print(attacker, " is not attacking issue but I need to attack it")
 				continue	
 			h_v = self.context.semantic.hypothetic_value(self.public_graph, (attacker, attacked))
-			# TODO compute best move
 			if min_gap > h_v - self.goal_issue_value:
 				best_move = (attacker, attacked)
 				min_gap = h_v - self.goal_issue_value
-		print("Best move: ", best_move)
-		print()
+
 		return best_move
 
 	def can_play(self):
@@ -304,7 +311,7 @@ class BasicSemantic(AbstractSemantic):
 		"""
 		Updating the graph weights from the leaves in.
 
-		For each (u, v):
+		(u, v):
 			- u is a new leaf which is attacking
 			- v an argument already present in the graph
 		"""
@@ -321,7 +328,7 @@ class BasicSemantic(AbstractSemantic):
 		"""
 		Checking  the value of the issue if we play argument arg
 
-		For each (u, v):
+		(u, v):
 			- u is a new leaf which is being examined for next move
 			- v an argument already present in the graph
 		"""
