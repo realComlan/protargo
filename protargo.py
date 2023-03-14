@@ -218,6 +218,16 @@ class AbstractProtocol:
 		self.public_graph = None
 		self.own_graph = None
 		self.goal_issue_value = 0
+		self.possible_moves = [0]
+
+	def generate_possible_moves(self):
+		self.possible_moves = [(u, v) for (u, v) in self.own_graph.edges \
+				if u in self.own_graph \
+					and not self.context.universal_graph.nodes[u]["played"] \
+					and v in self.public_graph.nodes]
+		# DEBUG
+		#print("{} [ possible moves: {} ]".format(self.name, self.possible_moves))
+		#print("")
 
 	def possible_moves(self):
 		pass
@@ -248,16 +258,6 @@ class BasicProtocol(AbstractProtocol):
 	def __init__(self):
 		super().__init__()
 		self.name = 'BasicProtocol'
-		self.possible_moves = [0]
-
-	def generate_possible_moves(self):
-		self.possible_moves = [(u, v) for (u, v) in self.own_graph.edges \
-				if u in self.own_graph \
-					and not self.context.universal_graph.nodes[u]["played"] \
-					and v in self.public_graph.nodes]
-		# DEBUG
-		#print("{} [ possible moves: {} ]".format(self.name, self.possible_moves))
-		#print("")
 			
 	def best_move(self):
 		self.generate_possible_moves()
