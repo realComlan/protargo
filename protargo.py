@@ -281,9 +281,9 @@ class BasicProtocol(AbstractProtocol):
 			#	print(attacker, " is not attacking issue but I need to attack it")
 				continue	
 			h_v = self.context.semantic.hypothetic_value(self.public_graph, (attacker, attacked))
-			if min_gap > h_v - self.goal_issue_value:
+			if min_gap > abs(h_v - self.goal_issue_value):
 				best_move = (attacker, attacked)
-				min_gap = h_v - self.goal_issue_value
+				min_gap = abs(h_v - self.goal_issue_value)
 
 		return best_move
 
