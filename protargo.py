@@ -263,7 +263,6 @@ class BasicProtocol(AbstractProtocol):
 		self.generate_possible_moves()
 		best_move = None
 		attacking = True
-		min_gap = 1
 
 		if self.context.get_current_issue_value() == self.goal_issue_value:
 			return None
@@ -272,6 +271,7 @@ class BasicProtocol(AbstractProtocol):
 		else:
 			attacking = False
 
+		min_gap = abs(self.context.get_current_issue_value()-self.goal_issue_value)
 		for attacker, attacked in self.possible_moves:
 			#print(attacker, " --> ", attacked)
 			if attacking and not self.context.is_an_attack_on_issue(attacker):
