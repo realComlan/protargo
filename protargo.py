@@ -113,7 +113,7 @@ class AgentPool:
 			agent = BasicAgent('Debator ' + str(i))
 			agent.generate_own_graph(seed)
 			self.agents.append(agent)
-			seed += 1
+			seed += 20220000
 		
 		print("########### AGENTS POOL OF {} DEBATORS ###########".format(len(self.agents)))
 		for agent in self.agents:
@@ -158,6 +158,7 @@ class AbstractAgent:
 		sample_size = random.randint(0, total_num_arguments)
 		#randomly select arguments (other than the central issue) from the universe...
 		selected_arguments = random.choice(list(UG.nodes)[1:], size=sample_size, replace=False)
+		#print(self.name, " selected ", selected_arguments)
 		self.own_graph = nx.DiGraph()
 		self.own_graph.add_node(0)
 		for u in selected_arguments:
