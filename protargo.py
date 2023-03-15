@@ -2,6 +2,7 @@ import networkx as nx
 from time import time
 import matplotlib.pyplot as plt
 from lib.debategraph_generation import * 
+from numpy import random
 
 class DebateManager:
 	instance = None
@@ -142,7 +143,7 @@ class AbstractAgent:
 	def generate_own_graph(self, seed):
 		UG = self.context.get_universal_graph()
 		total_num_arguments = len(UG.nodes())
-		from numpy import random
+		
 		random.seed(seed)
 		sample_size = random.randint(0, total_num_arguments+1)
 		#randomly select arguments (other than the central issue) from the universe...
