@@ -10,6 +10,7 @@ class DebateManager:
 	"""
 	def __init__(self, num_debaters=5, num_arguments=50, auto=True):
 		self.context = DebateContext()
+		self.reporter = DebateReporter()
 
 	def get_instance():
 		if not DebateManager.instance:
@@ -171,7 +172,10 @@ class AbstractAgent:
 				self.own_graph.add_edge(predecessor, successor)
 				predecessor, successors = successor, list(UG.successors(successor))
 		self.context.semantic.backward_update_graph(self.own_graph)
-		#print(nx.forest_str(self.own_graph))
+		print(self.name, "'s Personal Graph.")
+		print(self.own_graph.edges)
+		#nx.draw(self.own_graph, with_labels=True, node_color='lightblue', node_size=500, font_size=16)
+		print()
 		self.protocol.set_own_graph(self.own_graph)
 		self.protocol.goal_issue_value = self.own_graph.nodes[0]["weight"]
 
@@ -382,5 +386,22 @@ class ArgumentGraph:
 
 	def save_graph(graph, path, ext, id=0):
 		save_graph(graph, path, ext, id=0)
+
+
+###########################################
+#	Debate Reporter World
+###########################################
+
+class DebateReporter:
+	
+	def __init__(self):
+		pass 
+	
+	def log(self, event):
+		pass
+
+	def info(self, event):
+		pass
+
 
 
