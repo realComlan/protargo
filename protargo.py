@@ -401,7 +401,7 @@ def save_graph(graph,agents_graph):
 	    for a in range(len(agents_graph)):
 		    print(a)
 		    with open(f"graphs/{directory}/agent{a}.apx","w") as f:
-		    	f.write(export_apx(agents_graph[0].own_graph))
+		    	f.write(export_apx(agents_graph[a].own_graph))
 		    
 	
 
