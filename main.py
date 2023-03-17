@@ -12,8 +12,7 @@ if __name__ == "__main__":
 	save_graph(ctx.get_universal_graph(), ctx.agent_pool.agents)
 	#plt.show()
 	ctx.build(nb_agents=10, max_nb_root_branch=5, branch_trees_max_size=100)
-	ctx.loop()
-	
+	ctx.loop()	
 
 	agents = ctx.agent_pool.agents
 	print(agents)
