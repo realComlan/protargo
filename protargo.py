@@ -12,7 +12,8 @@ class DebateManager:
 	This is Protargo 1.0. Thanks for using it.	
 	"""
 	def __init__(self, num_debaters=5, num_arguments=50, auto=True):
-		self.context = DebateContext()
+		self.context = DebateContext.get_instance()
+		self.reporter = DebateReporter()
 
 	def get_instance():
 		if not DebateManager.instance:
@@ -149,6 +150,7 @@ class AbstractAgent:
 		self.protocol = self.create_protocol()
 		self.protocol.set_public_graph(self.context.public_graph)
 		self.context.protocol_pool.add(self.protocol)
+		self.own_graph = None
 
 	def create_protocol(self):
 		pass
@@ -158,7 +160,7 @@ class AbstractAgent:
 		total_num_arguments = len(UG.nodes())
 		
 		random.seed(seed)
-		sample_size = random.randint(0, total_num_arguments)
+		sample_size = random.randint(0, 2*total_num_arguments//3)
 		#randomly select arguments (other than the central issue) from the universe...
 		selected_arguments = random.choice(list(UG.nodes)[1:], size=sample_size, replace=False)
 		#print(self.name, " selected ", selected_arguments)
@@ -174,7 +176,10 @@ class AbstractAgent:
 				self.own_graph.add_edge(predecessor, successor)
 				predecessor, successors = successor, list(UG.successors(successor))
 		self.context.semantic.backward_update_graph(self.own_graph)
-		#print(nx.forest_str(self.own_graph))
+		print(self.name, "'s Personal Graph.")
+		print("Number of arguments: {}".format(len(self.own_graph.nodes)))
+		#nx.draw(self.own_graph, with_labels=True, node_color='lightblue', node_size=500, font_size=16)
+		print()
 		self.protocol.set_own_graph(self.own_graph)
 		self.protocol.goal_issue_value = self.own_graph.nodes[0]["weight"]
 
@@ -412,5 +417,20 @@ def export_apx(graph):
 		    f.write(graph_apx)
 	    
     #return graph_apx
+###########################################
+#	Debate Reporter World
+###########################################
+
+class DebateReporter:
+	
+	def __init__(self):
+		pass 
+	
+	def log(self, event):
+		pass
+
+	def info(self, event):
+		pass
+
 
 
