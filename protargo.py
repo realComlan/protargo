@@ -3,6 +3,8 @@ from time import time
 import matplotlib.pyplot as plt
 from lib.debategraph_generation import * 
 from numpy import random
+import os
+import datetime
 
 class DebateManager:
 	instance = None
@@ -42,12 +44,16 @@ class DebateContext:
 		self.agent_pool.build()
 
 	def loop(self):
-		while self.protocol_pool.can_play():
-			moves = self.agent_pool.play()
-			for move in moves:
-				self.public_graph.add_edge(move)
-				self.universal_graph.nodes[move[0]]["played"] = True
-				self.semantic.update_public_graph(self.public_graph, move)
+		i = 0
+		debate_open = True
+		while debate_open:
+			print()
+			print("############     ROUND {}     #############".format(i+1))
+			print()
+			debate_open = self.agent_pool.play()
+			i+=1
+		print("Debate finished in {} rounds.".format(i-1))
+		print("Final issue value: {}.".format(self.public_graph.nodes[0]["weight"]))
 
 	def get_instance():
 		if not DebateContext.instance:
@@ -103,26 +109,33 @@ class AgentPool:
 	def __init__(self, num_agents=3):
 		self.agents = []
 		self.num_agents = num_agents
+		self.context = DebateContext.get_instance()
 
 	def build(self, seed=0):
 		for i in range(self.num_agents):
-			agent = BasicAgent('BasicAgent ' + str(i))
+			agent = BasicAgent('Debator ' + str(i))
 			agent.generate_own_graph(seed)
 			self.agents.append(agent)
-			seed += 1
+			seed += 20220000
 		
-		print("Agents Pool")
+		print("########### AGENTS POOL OF {} DEBATORS ###########".format(len(self.agents)))
 		for agent in self.agents:
 			print(agent)
+		print("###################################")
 
 	def play(self):
-		moves = []
+		someone_spoke = False
 		for agent in self.agents:
 			move = agent.play()
 			# (s)he will pass. Who is next...
 			if not move: continue
-			moves.append(move)
-		return moves
+			someone_spoke = True
+			u, v = move
+			print("{} say {} to attack {}.".format(agent.name, u, v))
+			self.context.public_graph.add_edge(u, v)
+			self.context.universal_graph.nodes[u]["played"] = True
+			self.context.semantic.update_public_graph(move)
+		return someone_spoke
 
 	def __len__(self):
 		return len(self.agents)
@@ -145,9 +158,10 @@ class AbstractAgent:
 		total_num_arguments = len(UG.nodes())
 		
 		random.seed(seed)
-		sample_size = random.randint(0, total_num_arguments+1)
+		sample_size = random.randint(0, total_num_arguments)
 		#randomly select arguments (other than the central issue) from the universe...
 		selected_arguments = random.choice(list(UG.nodes)[1:], size=sample_size, replace=False)
+		#print(self.name, " selected ", selected_arguments)
 		self.own_graph = nx.DiGraph()
 		self.own_graph.add_node(0)
 		for u in selected_arguments:
@@ -156,11 +170,11 @@ class AbstractAgent:
 			successors = list(UG.successors(u))
 			# while we haven't reached the issue (no successor)
 			while successors:
-				predecessor, successor = predecessor, successors[0]
+				successor = successors[0]
 				self.own_graph.add_edge(predecessor, successor)
 				predecessor, successors = successor, list(UG.successors(successor))
-		BasicSemantic.backward_update_graph(self.own_graph)
-		print(self.own_graph.nodes(data=True))
+		self.context.semantic.backward_update_graph(self.own_graph)
+		#print(nx.forest_str(self.own_graph))
 		self.protocol.set_own_graph(self.own_graph)
 		self.protocol.goal_issue_value = self.own_graph.nodes[0]["weight"]
 
@@ -207,6 +221,16 @@ class AbstractProtocol:
 		self.public_graph = None
 		self.own_graph = None
 		self.goal_issue_value = 0
+		self.possible_moves = [0]
+
+	def generate_possible_moves(self):
+		self.possible_moves = [(u, v) for (u, v) in self.own_graph.edges \
+				if u in self.own_graph \
+					and not self.context.universal_graph.nodes[u]["played"] \
+					and v in self.public_graph.nodes]
+		# DEBUG
+		#print("{} [ possible moves: {} ]".format(self.name, self.possible_moves))
+		#print("")
 
 	def possible_moves(self):
 		pass
@@ -237,15 +261,6 @@ class BasicProtocol(AbstractProtocol):
 	def __init__(self):
 		super().__init__()
 		self.name = 'BasicProtocol'
-		self.possible_moves = []
-
-	def generate_possible_moves(self):
-		self.possible_moves = [(u, v) for (u, v) in self.own_graph.edges \
-				if u in self.own_graph \
-					and not self.context.universal_graph.nodes[u]["played"] \
-					and v in self.public_graph.nodes]
-		print("{} [ possible moves: {} ]".format(self.name, self.possible_moves))
-		print("")
 			
 	def best_move(self):
 		self.generate_possible_moves()
@@ -259,18 +274,24 @@ class BasicProtocol(AbstractProtocol):
 		else:
 			attacking = False
 
+		min_gap = abs(self.context.get_current_issue_value()-self.goal_issue_value)
 		for attacker, attacked in self.possible_moves:
+			#print(attacker, " --> ", attacked)
 			if attacking and not self.context.is_an_attack_on_issue(attacker):
+			#	print(attacker, " is attacking issue but I need to defend it")
 				continue	
 			if not attacking and self.context.is_an_attack_on_issue(attacker):
+			#	print(attacker, " is not attacking issue but I need to attack it")
 				continue	
-			h_v = BasicSemantic.hypothetic_value(self.public_graph, (attacker, attacked))
-			# TODO compute best move
-			
+			h_v = self.context.semantic.hypothetic_value(self.public_graph, (attacker, attacked))
+			if min_gap > abs(h_v - self.goal_issue_value):
+				best_move = (attacker, attacked)
+				min_gap = abs(h_v - self.goal_issue_value)
+
 		return best_move
 
 	def can_play(self):
-		return not self.possible_moves
+		return len(self.possible_moves)
 
 
 #################################
@@ -290,27 +311,28 @@ class BasicSemantic(AbstractSemantic):
 	def __init__(self):
 		super().__init__()
 
-	def forward_update_graph(graph, move):
+	def forward_update_graph(self, graph, move):
 		"""
 		Updating the graph weights from the leaves in.
 
-		For each (u, v):
+		(u, v):
 			- u is a new leaf which is attacking
 			- v an argument already present in the graph
 		"""
 		u, v = move
 		graph.nodes[u]["weight"] = 1
 		graph.nodes[v]["weight"] = 1/(1+sum([graph.nodes[_]["weight"] for _ in graph.predecessors(v)]))
-		v = list(graph.successors(v))[0]
+		v = list(graph.successors(v))
 		while v:
+			v = v[0]
 			graph.nodes[v]["weight"] = 1/(1+sum([graph.nodes[_]["weight"] for _ in graph.predecessors(v)]))
-			v = list(graph.successors(v))[0]
+			v = list(graph.successors(v))
 
-	def hypothetic_value(graph, move):
+	def hypothetic_value(self, graph, move):
 		"""
 		Checking  the value of the issue if we play argument arg
 
-		For each (u, v):
+		(u, v):
 			- u is a new leaf which is being examined for next move
 			- v an argument already present in the graph
 		"""
@@ -322,23 +344,21 @@ class BasicSemantic(AbstractSemantic):
 			v = v[0]
 			s = weights[u] + sum([graph.nodes[_]["weight"] for _ in graph.predecessors(v) if _ != u])
 			weights[v] = 1 / (1+s)
-			u, v = v, list(graph.successors(v))[0]
+			u, v = v, list(graph.successors(v))
 		return weights[0]
 			
-	def update_public_graph(graph, moves):
+	def update_public_graph(self, move):
 		"""
 		Updating the graph weights from the leaves in
-		"""
-		if not type(plays) == list: plays = [plays]
-		for (u, v) in plays:
-			pass	
-
-	def backward_update_graph(graph, root=0):
+		"""	
+		return self.forward_update_graph(self.context.public_graph, move)
+		
+	def backward_update_graph(self, graph, root=0):
 		"""
 		Updating the graph weights from the issue out
 		"""
 		for u in graph.predecessors(root):
-			BasicSemantic.backward_update_graph(graph, u)
+			BasicSemantic.backward_update_graph(self, graph, u)
 		graph.nodes[root]["weight"] = 1/(1+sum([graph.nodes[u]["weight"] for u in graph.predecessors(root)]))
 
 
@@ -365,5 +385,32 @@ class ArgumentGraph:
 
 	def save_graph(graph, path, ext, id=0):
 		save_graph(graph, path, ext, id=0)
+
+
+def export_apx(graph):
+    
+    """
+    Function to convert a given graph to aspartix format (apx).
+    """
+    directory = "protocol-arg"+str(datetime.datetime.now())
+    graph_apx = ""
+    for arg in graph:
+        graph_apx += "arg(" + str(arg) + ").\n"
+    for a,b in graph.adjacency():
+        for c, d in b.items():
+            pass
+	    	#print(a,c,d)
+    #print("graph adjacency : ",graph.adjacency())
+    for arg1,dicoAtt in graph.adjacency():
+        if dicoAtt:
+            for arg2, eattr in dicoAtt.items():
+                graph_apx += "att(" + str(arg1) + "," + str(arg2) + ").\n"
+    print(graph_apx)
+    if not os.path.exists(f"graphs/{directory}"):
+	    os.mkdir(f"graphs/{directory}")
+	    with open(f"graphs/{directory}/graph_univ.apx","w") as f:
+		    f.write(graph_apx)
+	    
+    #return graph_apx
 
 
