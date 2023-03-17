@@ -392,18 +392,31 @@ class ArgumentGraph:
 		save_graph(graph, path, ext, id=0)
 
 
+def save_graph(graph,agents_graph):
+	directory = "protocol-arg"+str(datetime.datetime.now())
+	if not os.path.exists(f"graphs/{directory}"):
+	    os.mkdir(f"graphs/{directory}")
+	    with open(f"graphs/{directory}/graph_univ.apx","w") as f:
+		    f.write(export_apx(graph))
+	    for a in range(len(agents_graph)):
+		    print(a)
+		    with open(f"graphs/{directory}/agent{a}.apx","w") as f:
+		    	f.write(export_apx(agents_graph[0].own_graph))
+		    
+	
+
 def export_apx(graph):
     
     """
     Function to convert a given graph to aspartix format (apx).
     """
-    directory = "protocol-arg"+str(datetime.datetime.now())
+   
     graph_apx = ""
     for arg in graph:
         graph_apx += "arg(" + str(arg) + ").\n"
-    for a,b in graph.adjacency():
-        for c, d in b.items():
-            pass
+    #for a,b in graph.adjacency():
+        #for c, d in b.items():
+            #pass
 	    	#print(a,c,d)
     #print("graph adjacency : ",graph.adjacency())
     for arg1,dicoAtt in graph.adjacency():
@@ -411,12 +424,9 @@ def export_apx(graph):
             for arg2, eattr in dicoAtt.items():
                 graph_apx += "att(" + str(arg1) + "," + str(arg2) + ").\n"
     print(graph_apx)
-    if not os.path.exists(f"graphs/{directory}"):
-	    os.mkdir(f"graphs/{directory}")
-	    with open(f"graphs/{directory}/graph_univ.apx","w") as f:
-		    f.write(graph_apx)
+    
 	    
-    #return graph_apx
+    return graph_apx
 ###########################################
 #	Debate Reporter World
 ###########################################
