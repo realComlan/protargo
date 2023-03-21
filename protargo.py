@@ -11,10 +11,32 @@ class DebateManager:
 	help_string = """
 	This is Protargo 1.0. Thanks for using it.	
 	"""
-	def __init__(self, num_debaters=5, num_arguments=50, auto=True):
+	def __init__(self, auto=True):
+		self.num_agents = 10
+		self.num_arguments = 10
+		self.parse_inputs()
 		self.context = DebateContext.get_instance()
+		self.context.build(nb_agents=self.num_agents, max_nb_root_branch=5, branch_trees_max_size=self.num_arguments)
 		self.reporter = DebateReporter()
 
+	def parse_inputs(self):
+		import sys
+		argv = sys.argv[1:]
+		try:
+			i=0
+			while i < len(argv):
+				if argv[i] not in {'--agents', '--ag', '--arguments', '--arg', '--arg'}:
+					print("param not recognized")
+					return
+				if argv[i] == '--agents':
+					self.num_agents = int(argv[i+1])
+				elif argv[i] == '--arguments':
+					self.num_arguments = int(argv[i+1])
+				i+=2
+		except Exception as e:
+			print(f"\x1b[41m {e}\033[00m")
+			print(DebateManager.help_string)
+	
 	def get_instance():
 		if not DebateManager.instance:
 			DebateManager.instance = DebateManager()
@@ -22,6 +44,9 @@ class DebateManager:
 	
 	def begin(self):
 		self.context.loop()
+
+	def get_context(self):
+		return self.context
 
 
 class DebateContext:
@@ -283,7 +308,7 @@ class BasicProtocol(AbstractProtocol):
 		for attacker, attacked in self.possible_moves:
 			#print(attacker, " --> ", attacked)
 			if attacking and not self.context.is_an_attack_on_issue(attacker):
-			#	print(attacker, " is attacking issue but I need to defend it")
+				#	print(attacker, " is not attacking issue but I need to attack it")
 				continue	
 			if not attacking and self.context.is_an_attack_on_issue(attacker):
 			#	print(attacker, " is not attacking issue but I need to attack it")
@@ -366,7 +391,6 @@ class BasicSemantic(AbstractSemantic):
 			BasicSemantic.backward_update_graph(self, graph, u)
 		graph.nodes[root]["weight"] = 1/(1+sum([graph.nodes[u]["weight"] for u in graph.predecessors(root)]))
 
-
 ########################################
 #	Debate Argument graphs World
 ########################################
@@ -391,42 +415,30 @@ class ArgumentGraph:
 	def save_graph(graph, path, ext, id=0):
 		save_graph(graph, path, ext, id=0)
 
+	def export_apx(graph):
+		"""
+		Function to convert a given graph to aspartix format (apx).
+		"""
+		directory = "protocol-arg"+str(datetime.datetime.now())
+		graph_apx = ""
+		for arg in graph:
+			graph_apx += "arg(" + str(arg) + ").\n"
+		for a,b in graph.adjacency():
+			for c, d in b.items():
+				pass
+				#print(a,c,d)
+		#print("graph adjacency : ",graph.adjacency())
+		for arg1, dicoAtt in graph.adjacency():
+			if dicoAtt:
+				for arg2, eattr in dicoAtt.items():
+					graph_apx += "att(" + str(arg1) + "," + str(arg2) + ").\n"
+		print(graph_apx)
+		if not os.path.exists(f"graphs/{directory}"):
+			os.mkdir(f"graphs/{directory}")
+			with open(f"graphs/{directory}/graph_univ.apx","w") as f:
+				f.write(graph_apx)
+		return graph_apx
 
-def save_graph(graph,agents_graph):
-	directory = "protocol-arg"+str(datetime.datetime.now())
-	if not os.path.exists(f"graphs/{directory}"):
-	    os.mkdir(f"graphs/{directory}")
-	    with open(f"graphs/{directory}/graph_univ.apx","w") as f:
-		    f.write(export_apx(graph))
-	    for a in range(len(agents_graph)):
-		    print(a)
-		    with open(f"graphs/{directory}/agent{a}.apx","w") as f:
-		    	f.write(export_apx(agents_graph[a].own_graph))
-		    
-	
-
-def export_apx(graph):
-    
-    """
-    Function to convert a given graph to aspartix format (apx).
-    """
-   
-    graph_apx = ""
-    for arg in graph:
-        graph_apx += "arg(" + str(arg) + ").\n"
-    #for a,b in graph.adjacency():
-        #for c, d in b.items():
-            #pass
-	    	#print(a,c,d)
-    #print("graph adjacency : ",graph.adjacency())
-    for arg1,dicoAtt in graph.adjacency():
-        if dicoAtt:
-            for arg2, eattr in dicoAtt.items():
-                graph_apx += "att(" + str(arg1) + "," + str(arg2) + ").\n"
-    print(graph_apx)
-    
-	    
-    return graph_apx
 ###########################################
 #	Debate Reporter World
 ###########################################
