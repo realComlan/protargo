@@ -10,28 +10,39 @@ class DebateManager:
 	instance = None
 	help_string = """
 	This is Protargo 1.0. Thanks for using it.	
+	Example:
+		python3.9 main.py --agents 10 --root-branch 5 --arguments 10
 	"""
 	def __init__(self, auto=True):
 		self.num_agents = 10
 		self.num_arguments = 10
+		self.num_root_branch = 5 
+		
 		self.parse_inputs()
 		self.context = DebateContext.get_instance()
-		self.context.build(nb_agents=self.num_agents, max_nb_root_branch=5, branch_trees_max_size=self.num_arguments)
+		self.context.build(nb_agents=self.num_agents, \
+						max_nb_root_branch=self.num_root_branch, \
+						branch_trees_max_size=self.num_arguments)
 		self.reporter = DebateReporter()
 
 	def parse_inputs(self):
 		import sys
 		argv = sys.argv[1:]
+		if len(argv) != 6:
+			print("\x1b[41m {}\033[00m".format(DebateManager.help_string))
+			sys.exit()
 		try:
 			i=0
 			while i < len(argv):
-				if argv[i] not in {'--agents', '--ag', '--arguments', '--arg', '--arg'}:
+				if argv[i] not in {'--agents', '--root-branch', '--arguments', '--arg', '--arg'}:
 					print("param not recognized")
 					return
 				if argv[i] == '--agents':
 					self.num_agents = int(argv[i+1])
 				elif argv[i] == '--arguments':
-					self.num_arguments = int(argv[i+1])
+					self.num_arguments = int(argv[i+1])	
+				elif argv[i] == '--root-branch':
+					self.num_root_branch = int(argv[i+1])
 				i+=2
 		except Exception as e:
 			print(f"\x1b[41m {e}\033[00m")
