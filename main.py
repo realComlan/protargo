@@ -3,7 +3,8 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
-	ctx = DebateContext.get_instance()
+	dbm = DebateManager.get_instance()
+	ctx = dbm.get_context()
 	ctx.build(nb_agents=4, max_nb_root_branch=5, branch_trees_max_size=20)
 	#nx.draw(ctx.get_universal_graph(), with_labels=True, font_weight='bold')
 	print("-------------------------------------------universal graph--------------------------------------")
