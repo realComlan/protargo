@@ -16,7 +16,7 @@ if __name__ == "__main__":
 		pos = nx.spring_layout(a.own_graph)
 		fig, ax = plt.subplots()
 		nx.draw(a.own_graph, pos=pos, ax=ax, with_labels=True, font_weight='bold')
-		ax.set_title(a.name)
+		ax.set_title(a)
 		fig.tight_layout()
 		plt.show()
 
