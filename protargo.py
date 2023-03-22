@@ -17,6 +17,7 @@ class DebateManager:
 		self.num_agents = 10
 		self.num_arguments = 10
 		self.num_root_branch = 5 
+		self.directory= self.getDirectory()
 		
 		self.parse_inputs()
 		self.context = DebateContext.get_instance()
@@ -24,6 +25,15 @@ class DebateManager:
 						max_nb_root_branch=self.num_root_branch, \
 						branch_trees_max_size=self.num_arguments)
 		self.reporter = DebateReporter()
+
+	def getDirectory(self):
+		directory = "protocol-arg"+str(datetime.datetime.now())
+		if not os.path.exists(f"graphs/{directory}"):
+			print("----------non trouvé-------------")
+			return os.mkdir(f"graphs/{directory}")
+		print("--------trouvé------------------")
+		return f"graphs/{directory}" 
+
 
 	def parse_inputs(self):
 		import sys
@@ -81,6 +91,14 @@ class DebateContext:
 		self.agent_pool.build()
 
 	def loop(self):
+		directory = DebateManager().directory
+		chaine = "Round,"
+		agents = AgentPool()
+		agents.build()
+		for a in agents.agents:
+			chaine+f"{a.name},"
+		print('----------------------------------------')
+		print(chaine)
 		i = 0
 		debate_open = True
 		while debate_open:
