@@ -10,28 +10,39 @@ class DebateManager:
 	instance = None
 	help_string = """
 	This is Protargo 1.0. Thanks for using it.	
+	Example:
+		python3.9 main.py --agents 10 --root-branch 5 --arguments 10
 	"""
 	def __init__(self, auto=True):
 		self.num_agents = 10
 		self.num_arguments = 10
+		self.num_root_branch = 5 
+		
 		self.parse_inputs()
 		self.context = DebateContext.get_instance()
-		self.context.build(nb_agents=self.num_agents, max_nb_root_branch=5, branch_trees_max_size=self.num_arguments)
+		self.context.build(nb_agents=self.num_agents, \
+						max_nb_root_branch=self.num_root_branch, \
+						branch_trees_max_size=self.num_arguments)
 		self.reporter = DebateReporter()
 
 	def parse_inputs(self):
 		import sys
 		argv = sys.argv[1:]
+		if len(argv) != 6:
+			print("\x1b[41m {}\033[00m".format(DebateManager.help_string))
+			sys.exit()
 		try:
 			i=0
 			while i < len(argv):
-				if argv[i] not in {'--agents', '--ag', '--arguments', '--arg', '--arg'}:
+				if argv[i] not in {'--agents', '--root-branch', '--arguments', '--arg', '--arg'}:
 					print("param not recognized")
 					return
 				if argv[i] == '--agents':
 					self.num_agents = int(argv[i+1])
 				elif argv[i] == '--arguments':
-					self.num_arguments = int(argv[i+1])
+					self.num_arguments = int(argv[i+1])	
+				elif argv[i] == '--root-branch':
+					self.num_root_branch = int(argv[i+1])
 				i+=2
 		except Exception as e:
 			print(f"\x1b[41m {e}\033[00m")
@@ -457,6 +468,22 @@ def export_apx(graph):
 
 class DebateReporter:
 	
+#	fg_red = "\033[91m{}\033[00m"
+#        fg_green = "\033[92m{}\033[00m"
+#        fg_yellow = "\033[93m{}\033[00m"
+#        fg_light_purple = "\033[94m{}\033[00m"
+#        fg_purple = "\033[95m{}\033[00m"
+#        fg_cyan = "\033[96m{}\033[00m"
+#        fg_light_gray = "\033[97m{}\033[00m"
+#        fg_black = "\033[98m{}\033[00m"
+#        bg_red = "\x1b[41m{}\033[00m"   #background red
+#        bg_green = "\x1b[42m{}\033[00m"         #background green
+#        bg_yellow = "\x1b[43m{}\033[00m"        #background yellow
+#        bg_blue = "\x1b[44m{}\033[00m"  #background blue
+#        bg_magenta = "\x1b[45m{}\033[00m"       #background magenta
+#        bg_cyan = "\x1b[46m{}\033[00m"  #background cyan
+#        bg_white = "\x1b[47m{}\033[00m" 
+
 	def __init__(self):
 		pass 
 	

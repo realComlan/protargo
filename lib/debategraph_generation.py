@@ -119,7 +119,7 @@ def export_apx(graph):
                 graph_apx += "att(" + str(arg1) + "," + str(arg2) + ").\n"
     return graph_apx
 
-def save_graph(graph, path, ext, id=0):
+def save_graph(graph, path, ext="apx", id=0):
     """
     This function saves a given graph in a given directory in a given format with or without an id 
     at the end of the name. The path of the directory in parameter must exist.
