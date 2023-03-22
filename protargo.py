@@ -415,7 +415,7 @@ class ArgumentGraph:
 	def save_graph(graph, path, ext, id=0):
 		save_graph(graph, path, ext, id=0)
 
-	def export_apx(graph):
+def export_apx(graph):
 		"""
 		Function to convert a given graph to aspartix format (apx).
 		"""
