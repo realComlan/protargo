@@ -456,6 +456,22 @@ class ArgumentGraph:
 
 class DebateReporter:
 	
+	fg_red = "\033[91m{}\033[00m"
+        fg_green = "\033[92m{}\033[00m"
+        fg_yellow = "\033[93m{}\033[00m"
+        fg_light_purple = "\033[94m{}\033[00m"
+        fg_purple = "\033[95m{}\033[00m"
+        fg_cyan = "\033[96m{}\033[00m"
+        fg_light_gray = "\033[97m{}\033[00m"
+        fg_black = "\033[98m{}\033[00m"
+        bg_red = "\x1b[41m{}\033[00m"   #background red
+        bg_green = "\x1b[42m{}\033[00m"         #background green
+        bg_yellow = "\x1b[43m{}\033[00m"        #background yellow
+        bg_blue = "\x1b[44m{}\033[00m"  #background blue
+        bg_magenta = "\x1b[45m{}\033[00m"       #background magenta
+        bg_cyan = "\x1b[46m{}\033[00m"  #background cyan
+        bg_white = "\x1b[47m{}\033[00m" 
+
 	def __init__(self):
 		pass 
 	
