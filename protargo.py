@@ -9,22 +9,37 @@ import datetime
 class DebateManager:
 	instance = None
 	help_string = """
-	This is Protargo 1.0. Thanks for using it.	
-	Example:
-		python3.9 main.py --agents 10 --root-branch 5 --arguments 10
+This is Protargo 1.0. Thanks for using it.	
+
+Example command:
+	python3.9 main.py --agents 10 --root-branch 5 --arguments 10 --rand-seed 123 --universal-graph universe.apx
+
+	Details:
+
+	--agents 10 : [REQUIRED] the number of agents to join the debate
+	--root-branch 5 : [REQUIRED] the number of branches at the root 
+	--arguments 10 : [REQUIRED] the maximum number of arguments per branch
+	--rand-seed 123 : [OPTIONAL] the random seed that is used to build personal graphs
+	--universal-graph universe.apx : [OPTIONAL] a description of the universal graph
+
+Bye.
 	"""
 	def __init__(self, auto=True):
+		#Default parameters
 		self.num_agents = 10
 		self.num_arguments = 10
 		self.num_root_branch = 5 
 		self.directory= self.getDirectory()
+		self.seed = -1
+		self.universal_graph_path = None
 		
 		self.parse_inputs()
 		self.context = DebateContext.get_instance()
 		self.context.build(nb_agents=self.num_agents, \
 						max_nb_root_branch=self.num_root_branch, \
-						branch_trees_max_size=self.num_arguments)
-		self.reporter = DebateReporter()
+						branch_trees_max_size=self.num_arguments, \
+						seed=self.seed, 
+						universal_graph_provided=self.universal_graph_path)
 
 	def getDirectory(self):
 		directory = "protocol-arg"+str(datetime.datetime.now())
@@ -38,13 +53,16 @@ class DebateManager:
 	def parse_inputs(self):
 		import sys
 		argv = sys.argv[1:]
-		if len(argv) != 6:
-			print("\x1b[41m {}\033[00m".format(DebateManager.help_string))
+
+		#if '--agents' not in argv or '--root-branch' not in argv or '--arguments' not in argv:
+		if len(argv) == 0: 
+			print("\033[91m{}\033[00m".format(DebateManager.help_string))
 			sys.exit()
+
 		try:
 			i=0
 			while i < len(argv):
-				if argv[i] not in {'--agents', '--root-branch', '--arguments', '--arg', '--arg'}:
+				if argv[i] not in {'--agents', '--root-branch', '--arguments', '--rand-seed', '--universal-graph'}:
 					print("param not recognized")
 					return
 				if argv[i] == '--agents':
@@ -53,6 +71,10 @@ class DebateManager:
 					self.num_arguments = int(argv[i+1])	
 				elif argv[i] == '--root-branch':
 					self.num_root_branch = int(argv[i+1])
+				elif argv[i] == '--rand-seed':
+					self.seed = int(argv[i+1])	
+				elif argv[i] == '--universal-graph':
+					self.universal_graph_path = str(argv[i+1])
 				i+=2
 		except Exception as e:
 			print(f"\x1b[41m {e}\033[00m")
@@ -76,14 +98,20 @@ class DebateContext:
 
 	def __init__(self):
 		self.protocol_pool = ProtocolPool()
+		self.reporter = DebateReporter()
 
-	def build(self, nb_agents=5, max_nb_root_branch=5, branch_trees_max_size=100):
-		seed = int(time()//1)
-		self.build_universal_graph(nb_branch_star_min=1, \
+	def build(self, nb_agents=5, max_nb_root_branch=5, branch_trees_max_size=100, seed=-1, universal_graph_provided=None):
+		seed = seed if seed > 0 else int(time()//1)
+	
+		if universal_graph_provided:
+			self.build_universal_graph_from_apx(universal_graph_provided)
+		else:
+			self.build_universal_graph(nb_branch_star_min=1, \
 					nb_branch_star_max=max_nb_root_branch, \
 					nb_arg_tree_min=1, \
 					nb_arg_tree_max=branch_trees_max_size, \
 					seed=seed)
+
 		self.build_public_graph()
 		self.semantic = BasicSemantic()
 		self.semantic.set_public_graph(self.public_graph)
@@ -103,11 +131,11 @@ class DebateContext:
 		debate_open = True
 		while debate_open:
 			print()
-			print("############     ROUND {}     #############".format(i+1))
+			print(self.reporter.fg_green.format("############     ROUND {}     #############".format(i+1)))
 			print()
 			debate_open = self.agent_pool.play()
 			i+=1
-		print("Debate finished in {} rounds.".format(i-1))
+		print(self.reporter.bg_cyan.format("Debate finished in {} rounds.".format(i-1)))
 		print("Final issue value: {}.".format(self.public_graph.nodes[0]["weight"]))
 
 	def get_instance():
@@ -121,6 +149,27 @@ class DebateContext:
 								nb_branch_star_max, \
 								nb_arg_tree_min, \
 								nb_arg_tree_max, seed)
+		for u in self.universal_graph:
+			# Whether this argument has been played already
+			self.universal_graph.nodes[u]["played"] = False
+			# The distance to the issue. Useful to optimize the choice of best move.
+			self.universal_graph.nodes[u]["dist_to_issue"] = nx.shortest_path_length(self.universal_graph, u, 0)
+		self.universal_graph.nodes[0]["played"] = True
+
+	def build_universal_graph_from_apx(self, path_to_apx):
+		self.universal_graph = nx.DiGraph()
+		
+		import re
+		with open(path_to_apx) as f:
+			line = f.readline()
+			while line:
+				if line[:3] == 'att':
+					args = re.search("\(.+\)", line).group(0)[1:-1].split(",")
+					args[0] = args[0] if not args[0].isdigit() else int(args[0])			
+					args[1] = args[1] if not args[1].isdigit() else int(args[1])			
+					self.universal_graph.add_edge(args[0], args[1])
+				line = f.readline()
+		#print(self.universal_graph.nodes)
 		for u in self.universal_graph:
 			# Whether this argument has been played already
 			self.universal_graph.nodes[u]["played"] = False
@@ -167,13 +216,13 @@ class AgentPool:
 		self.context = DebateContext.get_instance()
 
 	def build(self, seed=0):
-		for i in range(self.num_agents):
+		for i in range(1, self.num_agents+1):
 			agent = BasicAgent('Debator ' + str(i))
 			agent.generate_own_graph(seed)
 			self.agents.append(agent)
 			seed += 20220000
 		
-		print("########### AGENTS POOL OF {} DEBATORS ###########".format(len(self.agents)))
+		print(self.context.reporter.bg_cyan.format("########### AGENTS POOL OF {} DEBATORS ###########".format(len(self.agents))))
 		for agent in self.agents:
 			print(agent)
 		print("###################################")
@@ -186,7 +235,7 @@ class AgentPool:
 			if not move: continue
 			someone_spoke = True
 			u, v = move
-			print("{} say {} to attack {}.".format(agent.name, u, v))
+			print(self.context.reporter.fg_cyan.format("{} say {} to attack {}.".format(agent.name, u, v)))
 			self.context.public_graph.add_edge(u, v)
 			self.context.universal_graph.nodes[u]["played"] = True
 			self.context.semantic.update_public_graph(move)
@@ -230,7 +279,7 @@ class AbstractAgent:
 				self.own_graph.add_edge(predecessor, successor)
 				predecessor, successors = successor, list(UG.successors(successor))
 		self.context.semantic.backward_update_graph(self.own_graph)
-		print(self.name, "'s Personal Graph.")
+		print(self.context.reporter.fg_yellow.format(self.name, "'s Personal Graph."))
 		print("Number of arguments: {}".format(len(self.own_graph.nodes)))
 		#nx.draw(self.own_graph, with_labels=True, node_color='lightblue', node_size=500, font_size=16)
 		print()
@@ -485,22 +534,21 @@ def export_apx(graph):
 ###########################################
 
 class DebateReporter:
-	
-#	fg_red = "\033[91m{}\033[00m"
-#        fg_green = "\033[92m{}\033[00m"
-#        fg_yellow = "\033[93m{}\033[00m"
-#        fg_light_purple = "\033[94m{}\033[00m"
-#        fg_purple = "\033[95m{}\033[00m"
-#        fg_cyan = "\033[96m{}\033[00m"
-#        fg_light_gray = "\033[97m{}\033[00m"
-#        fg_black = "\033[98m{}\033[00m"
-#        bg_red = "\x1b[41m{}\033[00m"   #background red
-#        bg_green = "\x1b[42m{}\033[00m"         #background green
-#        bg_yellow = "\x1b[43m{}\033[00m"        #background yellow
-#        bg_blue = "\x1b[44m{}\033[00m"  #background blue
-#        bg_magenta = "\x1b[45m{}\033[00m"       #background magenta
-#        bg_cyan = "\x1b[46m{}\033[00m"  #background cyan
-#        bg_white = "\x1b[47m{}\033[00m" 
+	fg_red = "\033[91m{}\033[00m"
+	fg_green = "\033[92m{}\033[00m"
+	fg_yellow = "\033[93m{}\033[00m"
+	fg_light_purple = "\033[94m{}\033[00m"
+	fg_purple = "\033[95m{}\033[00m"
+	fg_cyan = "\033[96m{}\033[00m"
+	fg_light_gray = "\033[97m{}\033[00m"
+	fg_black = "\033[98m{}\033[00m"
+	bg_red = "\x1b[41m{}\033[00m"   #background red
+	bg_green = "\x1b[42m{}\033[00m"         #background green
+	bg_yellow = "\x1b[43m{}\033[00m"        #background yellow
+	bg_blue = "\x1b[44m{}\033[00m"  #background blue	
+	bg_magenta = "\x1b[45m{}\033[00m"       #background magenta
+	bg_cyan = "\x1b[46m{}\033[00m"  #background cyan
+	bg_white = "\x1b[47m{}\033[00m" 
 
 	def __init__(self):
 		pass 

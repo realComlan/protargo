@@ -4,7 +4,14 @@ Experimentation on the dynamics of argumentation protocols.
 
 To run the code, please do: 	
 
-	python3.9 main.py --agents <number of agents> --arguments <number of arguments>
+                python3.9 main.py --agents 10 --root-branch 5 --arguments 10 --rand-seed 123 --universal-graph universe.apx
 
-	Example: If you run: python3.9 main.py --agents 10 --arguments 100
-	a debate session will be run where there are ten agents and "about" 100 arguments...
+                Details:
+
+                --agents 10 : [REQUIRED] the number of agents to join the debate
+                --root-branch 5 : [REQUIRED] the number of branches at the root 
+                --arguments 10 : [REQUIRED] the maximum number of arguments per branch
+                --rand-seed 123 : [OPTIONAL] the random seed that is used to build personal graphs
+                --universal-graph universe.apx : [OPTIONAL] a description of the universal graph
+        
+
