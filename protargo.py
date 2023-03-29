@@ -30,6 +30,7 @@ Bye.
 		self.num_arguments = 10
 		self.num_root_branch = 5 
 		self.directory= self.getDirectory()
+		self.chaine=""
 		self.seed = -1
 		self.universal_graph_path = None
 		
@@ -43,10 +44,10 @@ Bye.
 
 	def getDirectory(self):
 		directory = "protocol-arg"+str(datetime.datetime.now())
+		print(directory)
 		if not os.path.exists(f"graphs/{directory}"):
-			print("----------non trouvé-------------")
-			return os.mkdir(f"graphs/{directory}")
-		print("--------trouvé------------------")
+			os.mkdir(f"graphs/{directory}")
+			return f"graphs/{directory}"
 		return f"graphs/{directory}" 
 
 
@@ -119,22 +120,29 @@ class DebateContext:
 		self.agent_pool.build()
 
 	def loop(self):
-		directory = DebateManager().directory
-		chaine = "Round,"
-		agents = AgentPool()
-		agents.build()
-		for a in agents.agents:
-			chaine+f"{a.name},"
-		print('----------------------------------------')
-		print(chaine)
+		d = DebateManager.get_instance()
+		d.chaine = "Round,"
+		for a in self.agent_pool.agents:
+			d.chaine+=f"{a.name},"
+		d.chaine+="issu,\n"
+		d.chaine+="Initial State,"
+		for a in self.agent_pool.agents:
+			d.chaine+=f'{a.own_graph.nodes[0]["weight"]},'
+		d.chaine+=f'{self.public_graph.nodes[0]["weight"]},\n'
+		print(d.chaine)
 		i = 0
 		debate_open = True
 		while debate_open:
 			print()
 			print(self.reporter.fg_green.format("############     ROUND {}     #############".format(i+1)))
 			print()
-			debate_open = self.agent_pool.play()
+			d.chaine+=f"ROUND {i+1},"
+			debate_open = self.agent_pool.play(d)
+			d.chaine+=f'{self.public_graph.nodes[0]["weight"]},\n'
 			i+=1
+		print(d.chaine)
+		with open(f"{d.directory}/details.csv",'w') as f:
+			f.write(d.chaine)
 		print(self.reporter.bg_cyan.format("Debate finished in {} rounds.".format(i-1)))
 		print("Final issue value: {}.".format(self.public_graph.nodes[0]["weight"]))
 
@@ -227,15 +235,18 @@ class AgentPool:
 			print(agent)
 		print("###################################")
 
-	def play(self):
+	def play(self,d):
 		someone_spoke = False
 		for agent in self.agents:
 			move = agent.play()
 			# (s)he will pass. Who is next...
-			if not move: continue
+			if not move: 
+				d.chaine+=f"-,"
+				continue
 			someone_spoke = True
 			u, v = move
 			print(self.context.reporter.fg_cyan.format("{} say {} to attack {}.".format(agent.name, u, v)))
+			d.chaine+=f"{u}=>{v},"
 			self.context.public_graph.add_edge(u, v)
 			self.context.universal_graph.nodes[u]["played"] = True
 			self.context.semantic.update_public_graph(move)
@@ -494,15 +505,15 @@ class ArgumentGraph:
 		save_graph(graph, path, ext, id=0)
 
 def save_graph(graph,agents_graph):
-	directory = "protocol-arg"+str(datetime.datetime.now())
-	if not os.path.exists(f"graphs/{directory}"):
-	    os.mkdir(f"graphs/{directory}")
-	    with open(f"graphs/{directory}/graph_univ.apx","w") as f:
-		    f.write(export_apx(graph))
-	    for a in range(len(agents_graph)):
-		    print(a)
-		    with open(f"graphs/{directory}/agent{a}.apx","w") as f:
-		    	f.write(export_apx(agents_graph[a].own_graph))
+	directory = DebateManager.get_instance().directory
+	"""if not os.path.exists(f"graphs/{directory}"):
+	    os.mkdir(f"graphs/{directory}")"""
+	with open(f"{directory}/graph_univ.apx","w") as f:
+		f.write(export_apx(graph))
+	for a in range(len(agents_graph)):
+		print(a)
+		with open(f"{directory}/agent{a}.apx","w") as f:
+		    f.write(export_apx(agents_graph[a].own_graph))
 		    
 	
 
