@@ -122,12 +122,12 @@ class DebateContext:
 		d = DebateManager.get_instance()
 		d.chaine = "Round,"
 		for a in self.agent_pool.agents:
-			d.chaine+=f"{a.name},"
+			d.chaine+=f"issu before,{a.name},"
 		d.chaine+="issu,\n"
 		d.chaine+="Initial State,"
 		for a in self.agent_pool.agents:
-			d.chaine+=f'{a.own_graph.nodes[0]["weight"]},'
-		d.chaine+=f'{self.public_graph.nodes[0]["weight"]},\n'
+			d.chaine+='{:.2f}'.format(self.public_graph.nodes[0]["weight"])+','+'{:.2f}'.format(a.own_graph.nodes[0]["weight"])+','
+		d.chaine+='{:.2f}'.format(self.public_graph.nodes[0]["weight"])+',\n'
 		print(d.chaine)
 		i = 0
 		debate_open = True
@@ -137,7 +137,7 @@ class DebateContext:
 			print()
 			d.chaine+=f"ROUND {i+1},"
 			debate_open = self.agent_pool.play(d)
-			d.chaine+=f'{self.public_graph.nodes[0]["weight"]},\n'
+			d.chaine+='{:.2f}'.format(self.public_graph.nodes[0]["weight"])+',\n'
 			i+=1
 		print(d.chaine)
 		with open(f"{d.directory}/details.csv",'w') as f:
@@ -244,12 +244,12 @@ class AgentPool:
 			move = agent.play()
 			# (s)he will pass. Who is next...
 			if not move: 
-				d.chaine+=f"-,"
+				d.chaine+='{:.2f}'.format(self.context.public_graph.nodes[0]["weight"])+',-,'
 				continue
 			someone_spoke = True
 			u, v = move
 			print(self.context.reporter.fg_cyan.format("{} say {} to attack {}.".format(agent.name, u, v)))
-			d.chaine+=f"{u}=>{v},"
+			d.chaine+='{:.2f}'.format(self.context.public_graph.nodes[0]["weight"])+","+f"{u},"
 			self.context.public_graph.add_edge(u, v)
 			self.context.universal_graph.nodes[u]["played"] = True
 			self.context.semantic.update_public_graph(move)
