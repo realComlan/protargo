@@ -1,10 +1,10 @@
 import networkx as nx
-from time import time
 import matplotlib.pyplot as plt
-from lib.debategraph_generation import * 
-from numpy import random
 import os
 import datetime
+from lib.debategraph_generation import * 
+from numpy import random
+from time import time
 
 class DebateManager:
 	instance = None
@@ -12,7 +12,7 @@ class DebateManager:
 This is Protargo 1.0. Thanks for using it.	
 
 Example command:
-	python3.9 main.py --agents 10 --root-branch 5 --arguments 10 --rand-seed 123 --universal-graph universe.apx
+	python3 main.py --agents 10 --root-branch 5 --arguments 10 --rand-seed 123 --universal-graph universe.apx
 
 	Details:
 
@@ -64,7 +64,7 @@ Bye.
 			i=0
 			while i < len(argv):
 				if argv[i] not in {'--agents', '--root-branch', '--arguments', '--rand-seed', '--universal-graph'}:
-					print("param not recognized")
+					print("param {} not recognized".format(argv[i]))
 					return
 				if argv[i] == '--agents':
 					self.num_agents = int(argv[i+1])
@@ -91,8 +91,7 @@ Bye.
 
 	def get_context(self):
 		return self.context
-
-
+	
 class DebateContext:
 
 	instance = None
@@ -117,7 +116,7 @@ class DebateContext:
 		self.semantic = BasicSemantic()
 		self.semantic.set_public_graph(self.public_graph)
 		self.agent_pool = AgentPool(num_agents=nb_agents)
-		self.agent_pool.build()
+		self.agent_pool.build(seed=seed)
 
 	def loop(self):
 		d = DebateManager.get_instance()
@@ -153,7 +152,10 @@ class DebateContext:
 
 	
 	def build_universal_graph(self, nb_branch_star_min=6, nb_branch_star_max=15, nb_arg_tree_min=1, nb_arg_tree_max=6, seed=0):
-		self.universal_graph = ArgumentGraph.generate(nb_branch_star_min, \
+		# Here the first argument and the second one are the same in order to 
+		# ensure that the the constructed tree has nb_branch_star_max branches
+		# at the root
+		self.universal_graph = ArgumentGraph.generate(nb_branch_star_max, \
 								nb_branch_star_max, \
 								nb_arg_tree_min, \
 								nb_arg_tree_max, seed)
@@ -166,7 +168,7 @@ class DebateContext:
 
 	def build_universal_graph_from_apx(self, path_to_apx):
 		self.universal_graph = nx.DiGraph()
-		
+
 		import re
 		with open(path_to_apx) as f:
 			line = f.readline()
@@ -225,10 +227,11 @@ class AgentPool:
 
 	def build(self, seed=0):
 		for i in range(1, self.num_agents+1):
-			agent = BasicAgent('Debator ' + str(i))
+			agent = BasicAgent('Debator' + str(i))
 			agent.generate_own_graph(seed)
 			self.agents.append(agent)
 			seed += 20220000
+			print("seed : ")
 		
 		print(self.context.reporter.bg_cyan.format("########### AGENTS POOL OF {} DEBATORS ###########".format(len(self.agents))))
 		for agent in self.agents:
@@ -272,7 +275,7 @@ class AbstractAgent:
 	def generate_own_graph(self, seed):
 		UG = self.context.get_universal_graph()
 		total_num_arguments = len(UG.nodes())
-		
+		print(self, " random seed: ", seed)
 		random.seed(seed)
 		sample_size = random.randint(0, 2*total_num_arguments//3)
 		#randomly select arguments (other than the central issue) from the universe...
@@ -531,7 +534,7 @@ def export_apx(graph):
             #pass
 	    	#print(a,c,d)
     #print("graph adjacency : ",graph.adjacency())
-    for arg1,dicoAtt in graph.adjacency():
+    for arg1, dicoAtt in graph.adjacency():
         if dicoAtt:
             for arg2, eattr in dicoAtt.items():
                 graph_apx += "att(" + str(arg1) + "," + str(arg2) + ").\n"
