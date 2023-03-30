@@ -154,7 +154,7 @@ class DebateContext:
 	def build_universal_graph(self, nb_branch_star_min=6, nb_branch_star_max=15, nb_arg_tree_min=1, nb_arg_tree_max=6, seed=0):
 		# Here the first argument and the second one are the same in order to 
 		# ensure that the the constructed tree has nb_branch_star_max branches
-		# at the root
+		# at the root.
 		self.universal_graph = ArgumentGraph.generate(nb_branch_star_max, \
 								nb_branch_star_max, \
 								nb_arg_tree_min, \
@@ -231,9 +231,8 @@ class AgentPool:
 			agent.generate_own_graph(seed)
 			self.agents.append(agent)
 			seed += 20220000
-			print("seed : ")
 		
-		print(self.context.reporter.bg_cyan.format("########### AGENTS POOL OF {} DEBATORS ###########".format(len(self.agents))))
+		print(self.context.reporter.inform("########### AGENTS POOL OF {} DEBATORS ###########".format(len(self.agents))))
 		for agent in self.agents:
 			print(agent)
 		print("###################################")
@@ -248,7 +247,7 @@ class AgentPool:
 				continue
 			someone_spoke = True
 			u, v = move
-			print(self.context.reporter.fg_cyan.format("{} say {} to attack {}.".format(agent.name, u, v)))
+			print(self.context.reporter.inform("{} say {} to attack {}.".format(agent.name, u, v)))
 			d.chaine+='{:.2f}'.format(self.context.public_graph.nodes[0]["weight"])+","+f"{u},"
 			self.context.public_graph.add_edge(u, v)
 			self.context.universal_graph.nodes[u]["played"] = True
@@ -275,7 +274,7 @@ class AbstractAgent:
 	def generate_own_graph(self, seed):
 		UG = self.context.get_universal_graph()
 		total_num_arguments = len(UG.nodes())
-		print(self, " random seed: ", seed)
+
 		random.seed(seed)
 		sample_size = random.randint(0, 2*total_num_arguments//3)
 		#randomly select arguments (other than the central issue) from the universe...
@@ -293,7 +292,7 @@ class AbstractAgent:
 				self.own_graph.add_edge(predecessor, successor)
 				predecessor, successors = successor, list(UG.successors(successor))
 		self.context.semantic.backward_update_graph(self.own_graph)
-		print(self.context.reporter.fg_yellow.format(self.name, "'s Personal Graph."))
+		print(self.context.reporter.yellow_inform(self.name + "'s Personal Graph."))
 		print("Number of arguments: {}".format(len(self.own_graph.nodes)))
 		#nx.draw(self.own_graph, with_labels=True, node_color='lightblue', node_size=500, font_size=16)
 		print()
@@ -570,8 +569,11 @@ class DebateReporter:
 	def log(self, event):
 		pass
 
-	def info(self, event):
-		pass
+	def inform(self, event):
+		return self.fg_cyan.format(event)
+	
+	def yellow_inform(self, event):
+		return self.fg_yellow.format(event)
 
 
 
