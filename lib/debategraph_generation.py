@@ -26,13 +26,12 @@ def debate_graph_generation(nb_branch_star_min=6, nb_branch_star_max=15, nb_arg_
     central node is the target argument. For each branch of the star, a random tree is generated 
     (also via networkx) containing a random number of nodes.
     """
-
+    random.seed(seed)
     nb_branch_star=random.randrange(nb_branch_star_min,nb_branch_star_max+1)
     cpt=nb_branch_star #allows for a gradual increase in the number of arguments
 
     star = nx.generators.star_graph(nb_branch_star)
     star = nx.DiGraph([(u,v) for (u,v) in star.edges()]).reverse()
-
 
     for nodes_star in range(1,nb_branch_star+1):
         nb = random.randrange(nb_arg_tree_min,nb_arg_tree_max)
