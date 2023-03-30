@@ -27,7 +27,7 @@ def debate_graph_generation(nb_branch_star_min=6, nb_branch_star_max=15, nb_arg_
     (also via networkx) containing a random number of nodes.
     """
     random.seed(seed)
-    nb_branch_star=random.randrange(nb_branch_star_min,nb_branch_star_max+1)
+    nb_branch_star=random.randrange(nb_branch_star_min, nb_branch_star_max+1)
     cpt=nb_branch_star #allows for a gradual increase in the number of arguments
 
     star = nx.generators.star_graph(nb_branch_star)

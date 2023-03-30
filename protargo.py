@@ -21,6 +21,8 @@ Example command:
 	--arguments 10 : [REQUIRED] the maximum number of arguments per branch
 	--rand-seed 123 : [OPTIONAL] the random seed that is used to build personal graphs
 	--universal-graph universe.apx : [OPTIONAL] a description of the universal graph
+	--max_arguments_at_once: [OPTIONAL] how many arguments are the agents allowed to speak 
+							at most each time they have the floor. Default value is 1.
 
 Bye.
 	"""
@@ -379,9 +381,10 @@ class AbstractProtocol:
 
 class BasicProtocol(AbstractProtocol):
 
-	def __init__(self):
+	def __init__(self, max_arguments_at_once=1):
 		super().__init__()
 		self.name = 'BasicProtocol'
+		self.max_arguments_at_once = max_arguments_at_once
 			
 	def best_move(self):
 		self.generate_possible_moves()
