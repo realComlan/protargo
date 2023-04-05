@@ -2,6 +2,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import os
 import datetime
+import time
 from lib.debategraph_generation import * 
 from numpy import random
 from time import time
@@ -123,11 +124,13 @@ class DebateContext:
 		d.chaine = "Round,"
 		for a in self.agent_pool.agents:
 			d.chaine+=f"issu before,{a.name},"
-		d.chaine+="issu,\n"
+		d.chaine+="issu,"
+		d.chaine+="Run Time,\n"
 		d.chaine+="Initial State,"
 		for a in self.agent_pool.agents:
-			d.chaine+='{:.2f}'.format(self.public_graph.nodes[0]["weight"])+','+'{:.2f}'.format(a.own_graph.nodes[0]["weight"])+','
-		d.chaine+='{:.2f}'.format(self.public_graph.nodes[0]["weight"])+',\n'
+			d.chaine+=' - '+','+'{:.2f}'.format(a.own_graph.nodes[0]["weight"])+','
+		d.chaine+='{:.2f}'.format(self.public_graph.nodes[0]["weight"])+','
+		d.chaine+='0,\n'
 		print(d.chaine)
 		i = 0
 		debate_open = True
@@ -135,9 +138,13 @@ class DebateContext:
 			print()
 			print(self.reporter.fg_green.format("############     ROUND {}     #############".format(i+1)))
 			print()
+
 			d.chaine+=f"ROUND {i+1},"
+			start_time = time()
 			debate_open = self.agent_pool.play(d)
-			d.chaine+='{:.2f}'.format(self.public_graph.nodes[0]["weight"])+',\n'
+			end_time = time()
+			d.chaine+='{:.2f}'.format(self.public_graph.nodes[0]["weight"])+','
+			d.chaine+=f'{end_time - start_time },\n'
 			i+=1
 		print(d.chaine)
 		with open(f"{d.directory}/details.csv",'w') as f:
