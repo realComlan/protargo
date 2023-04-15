@@ -14,7 +14,7 @@ This is Protargo 1.0. Thanks for using it.
 
 Example command:
 
-python3 main.py --agents 10 --root-branch 5 --arguments 10 --rand-seed 123 --universal-graph universe.apx --max-arguments-at-once 1
+python3 main.py --agents 10 --root-branch 5 --arguments 10 --rand-seed 123 --max-arguments-at-once 2
 
 	Details:
 
