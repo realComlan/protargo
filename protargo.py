@@ -131,13 +131,13 @@ class DebateContext:
 		d = DebateManager.get_instance()
 		d.chaine = "Round,"
 		for a in self.agent_pool.agents:
-			d.chaine+=f"issu before,{a.name},"
-		d.chaine+="issu,"
+			d.chaine+=f"issue before,{a.name},"
+		d.chaine+="issue,"
 		d.chaine+="Run Time,\n"
 		d.chaine+="Initial State,"
 		for a in self.agent_pool.agents:
 			d.chaine+=' - '+','+'{:.2f}'.format(a.own_graph.nodes[0]["weight"])+','
-		d.chaine+='{:.2f}'.format(self.public_graph.nodes[0]["weight"])+','
+		d.chaine+='{}'.format(self.public_graph.nodes[0]["weight"])+','
 		d.chaine+='0,\n'
 		print(d.chaine)
 		i = 0
@@ -151,7 +151,7 @@ class DebateContext:
 			start_time = time()
 			debate_open = self.agent_pool.play(d)
 			end_time = time()
-			d.chaine+='{:.2f}'.format(self.public_graph.nodes[0]["weight"])+','
+			d.chaine+=f'{self.public_graph.nodes[0]["weight"]},'
 			d.chaine+=f'{end_time - start_time },\n'
 			i+=1
 		print(d.chaine)
@@ -183,7 +183,6 @@ class DebateContext:
 
 	def build_universal_graph_from_apx(self, path_to_apx):
 		self.universal_graph = nx.DiGraph()
-
 		import re
 		with open(path_to_apx) as f:
 			line = f.readline()
@@ -227,7 +226,7 @@ class DebateContext:
 
 	def is_an_attack_on_issue(self, arg):
 		return self.universal_graph.nodes[arg]["dist_to_issue"]%2 == 1
-
+	
 
 #################################
 #	Debate Agents World
@@ -242,7 +241,7 @@ class AgentPool:
 
 	def build(self, seed=0):
 		for i in range(1, self.num_agents+1):
-			agent = BasicAgent('Debator' + str(i))
+			agent = PluralSpeechAgent('Debator' + str(i))
 			agent.generate_own_graph(seed)
 			self.agents.append(agent)
 			seed += 20220000
@@ -257,15 +256,17 @@ class AgentPool:
 		for agent in self.agents:
 			d.chaine+='{},'.format(self.context.public_graph.nodes[0]["weight"])
 			move = []
-			for _ in range(self.context.max_arguments_at_once):
-				argument_spoken = agent.play()
-				if not argument_spoken: break
-				u, v = argument_spoken
+			arguments_spoken = agent.play()
+            #print(f"arguments spoken {arguments_spoken} by {agent.name}")
+			if not arguments_spoken: break
+			for i in range(len(arguments_spoken)-1):
+				u, v = arguments_spoken[i+1], arguments_spoken[i]
+            #	print(f"spokekkkkk : {u} {v}")
 				self.context.public_graph.add_edge(u, v)
 				self.context.universal_graph.nodes[u]["played"] = True
-				self.context.semantic.update_public_graph([argument_spoken])
-				move.append(argument_spoken)
-				print(self.context.reporter.inform("{} say {} to attack {}.".format(agent.name, u, v)))
+				move.append((u, v))
+				print(self.context.reporter.inform(f"{agent.name} say {u} to attack {v}."))
+			self.context.semantic.update_public_graph(move)
 			# (s)he will pass. Who is next...
 			if not move: 
 				# self.context.reporter.take_note()
@@ -273,6 +274,32 @@ class AgentPool:
 				continue
 			someone_spoke = True
 			d.chaine+=f"{':'.join([str(u) for u, _ in move])},"
+
+#  This is a backup before changing the strategy of argument choice.
+#  In the backed up version, the arguments are played au coup par coup.
+#  But in the newer version it is played simultaneously.
+#
+# 	def play(self, d):
+# 		someone_spoke = False
+# 		for agent in self.agents:
+# 			d.chaine+='{},'.format(self.context.public_graph.nodes[0]["weight"])
+# 			move = []
+# 			for _ in range(self.context.max_arguments_at_once):
+# 				argument_spoken = agent.play()
+# 				if not argument_spoken: break
+# 				u, v = argument_spoken
+# 				self.context.public_graph.add_edge(u, v)
+# 				self.context.universal_graph.nodes[u]["played"] = True
+# 				self.context.semantic.update_public_graph([argument_spoken])
+# 				move.append(argument_spoken)
+# 				print(self.context.reporter.inform(f"{agent.name} say {u} to attack {v}."))
+# 			# (s)he will pass. Who is next...
+# 			if not move: 
+# 				# self.context.reporter.take_note()
+# 				d.chaine+='-,'
+# 				continue
+# 			someone_spoke = True
+# 			d.chaine+=f"{':'.join([str(u) for u, _ in move])},"
 
 		return someone_spoke
 
@@ -335,6 +362,13 @@ class BasicAgent(AbstractAgent):
 	def create_protocol(self):
 		return BasicProtocol()
 
+class PluralSpeechAgent(AbstractAgent):
+
+	def __init__(self, name):
+		super().__init__(name)
+
+	def create_protocol(self):
+		return PluralSpeechProtocol()
 
 #################################
 #	Debate Protocols World
@@ -441,6 +475,53 @@ class BasicProtocol(AbstractProtocol):
 
 		return best_move
 
+class PluralSpeechProtocol(AbstractProtocol):
+
+	def __init__(self):
+		super().__init__()
+		self.name = 'BasicProtocol'
+		self.max_arguments_at_once = self.context.max_arguments_at_once
+		
+	def best_move(self):
+		self.generate_possible_moves()
+		public_graph = self.public_graph.copy()
+		best_move = None
+		attacking = True
+
+		if self.context.get_current_issue_value() == self.goal_issue_value:
+			return None
+		elif self.context.get_current_issue_value() > self.goal_issue_value:
+			attacking = True
+		else:
+			attacking = False
+
+		min_gap = abs(self.context.get_current_issue_value()-self.goal_issue_value)
+		for attacker, attacked in self.possible_moves:
+			#print(attacker, " --> ", attacked)
+			# It makes sense to play divergent arguments only when I can say more 
+			# than one thing at a time thus we check the max_argument_at_once > 1
+			if self.context.max_arguments_at_once == 1 \
+				 	and attacking \
+						and not self.context.is_an_attack_on_issue(attacker):
+				#	print(attacker, " is not attacking issue but I need to attack it")
+				continue
+			if self.context.max_arguments_at_once == 1 \
+				and not attacking \
+					and self.context.is_an_attack_on_issue(attacker):
+				#	print(attacker, " is not attacking issue but I need to attack it")
+				continue
+			# We compute the hypothetic value
+			h_v, best_deep = self.context.semantic.hypothetic_value(self.public_graph, (attacker, attacked), own_graph=self.own_graph)
+            #print(f"h_v {h_v}, best_deep {best_deep}")
+			# if min_gap > abs(h_v - self.goal_issue_value):
+			# 	best_move = (attacker, attacked)
+			# 	min_gap = abs(h_v - self.goal_issue_value)
+			if min_gap > abs(h_v - self.goal_issue_value):
+				best_move = best_deep
+				min_gap = abs(h_v - self.goal_issue_value)
+
+		return best_move
+
 	def can_play(self):
 		return len(self.possible_moves)
 
@@ -458,10 +539,14 @@ class AbstractSemantic:
                 self.public_graph = public_graph
 
 class BasicSemantic(AbstractSemantic):
-
+	"""
+	An implementation for the that semantic
+	"""
+	
 	def __init__(self):
 		super().__init__()
-
+		
+	
 	def forward_update_graph(self, graph, move):
 		"""
 		Updating the graph weights from the leaves in.
@@ -481,31 +566,68 @@ class BasicSemantic(AbstractSemantic):
 				graph.nodes[v]["weight"] = 1/(1+sum([graph.nodes[_]["weight"] for _ in graph.predecessors(v)]))
 				v = list(graph.successors(v))
 
-	def hypothetic_value(self, graph, move):
+	def hypothetic_value(self, graph, move, own_graph):
 		"""
-		Checking  the value of the issue if we play argument arg
-
-		(u, v):
-			- u is a new leaf which is being examined for next move
-			- v an argument already present in the graph
+		This function takes three parameters
+			graph: the public graph
+			move: the (attacker, attacker) tuple that we wish to evaluate
+					the impact of 
+			own_graph: the personal graph of the agent playing. This is useful in the 
+						cases when multiple arguments are spoken at once
 		"""
-		weights = dict()
 		u, v = move
-		# print(graph.nodes(data=True))
-		weights[v] = 1/(2+sum([graph.nodes[_]["weight"] for _ in graph.predecessors(v)]))
-		u, v = v, list(graph.successors(v))
-		
-		while v:
-			v = v[0]
-			s = weights[u] + sum([graph.nodes[_]["weight"] for _ in graph.predecessors(v) if _ != u])
-			weights[v] = 1 / (1+s)
-			u, v = v, list(graph.successors(v))
-		return weights[0]
+		deep_arguments = self.context.semantic.deep_arguments(own_graph, u, self.context.max_arguments_at_once)
+		#print(f"deep argument generated {deep_arguments}")
+		best_depth = 0
+		gap_from_personal_issue_value = 1
+		attacked = v
+		for i in range(len(deep_arguments)):
+			weights = dict()
+			front_weight=self.front_weight_for_deep_arg_of_length(i+1)
+			#print(f"v = {attacked}")
+			weights[attacked] = 1/(1+front_weight+sum([graph.nodes[_]["weight"] for _ in graph.predecessors(attacked)]))
+			u, v = attacked, list(graph.successors(attacked))
+			while v:
+				v = v[0]
+				s = weights[u] + sum([graph.nodes[_]["weight"] for _ in graph.predecessors(v) if _ != u])
+				weights[v] = 1 / (1+s)
+				u, v = v, list(graph.successors(v))
+			if abs(weights[0]-own_graph.nodes[0]["weight"]) < gap_from_personal_issue_value:
+                #print(f"best depth {i}, real issue value {abs(weights[0]-own_graph.nodes[0]['weight'])}, min gap {gap_from_personal_issue_value}")
+				best_depth = i
+				best_weight = weights[0]
+				gap_from_personal_issue_value = abs(best_weight-graph.nodes[0]["weight"])
+				
+		return best_weight, [attacked]+deep_arguments[:best_depth+1]
 	
+	def front_weight_for_deep_arg_of_length(self, n):
+		"""
+		Here we compute the weight of an argument A1 which is the 
+		front of a chain of arguments A1 <-- A2 <-- A3...<-- An
+		of size n. We just noticed that the weight of A1 is the 
+		ratio of the nth fibonacci number by the (n+1)th. 
+		The limit of this weight when n tends towards infinity is 
+		the golden ratio.
+		"""
+		a, b = 0, 1
+		while n:
+			a, b = b, b+a
+			n -= 1
+		return a/b
+
+	def deep_arguments(self, graph, argument, depth):
+		if depth == 0: return []
+		max_deep = []
+		for pred in graph.predecessors(argument):
+			deep_arg = self.deep_arguments(graph, pred, depth-1)
+			if len(max_deep) < len(deep_arg):
+				max_deep = deep_arg
+		return [argument] + max_deep
+
 	def update_public_graph(self, move):
 		"""
 		Updating the graph weights from the leaves in
-		"""	
+		"""
 		return self.forward_update_graph(self.context.public_graph, move)
 	
 	def backward_update_graph(self, graph, root=0):
@@ -573,7 +695,6 @@ def export_apx(graph):
                 graph_apx += "att(" + str(arg1) + "," + str(arg2) + ").\n"
     print(graph_apx)
     
-	    
     return graph_apx
 
 ###########################################
