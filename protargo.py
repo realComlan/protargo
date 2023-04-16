@@ -123,16 +123,16 @@ class DebateContext:
 
 	def loop(self):
 		d = DebateManager.get_instance()
-		d.chaine = "Round,"
+		d.chaine = "Round;"
 		for a in self.agent_pool.agents:
-			d.chaine+=f"issu before,{a.name},"
-		d.chaine+="issu,"
-		d.chaine+="Run Time,\n"
-		d.chaine+="Initial State,"
+			d.chaine+=f"issu before;{a.name};"
+		d.chaine+="issu;"
+		d.chaine+="Run Time;\n"
+		d.chaine+="Initial State;"
 		for a in self.agent_pool.agents:
-			d.chaine+=' - '+','+'{:.2f}'.format(a.own_graph.nodes[0]["weight"])+','
-		d.chaine+='{:.2f}'.format(self.public_graph.nodes[0]["weight"])+','
-		d.chaine+='0,\n'
+			d.chaine+=' - '+';'+'{:.2f}'.format(a.own_graph.nodes[0]["weight"])+';'
+		d.chaine+='{:.2f}'.format(self.public_graph.nodes[0]["weight"])+';'
+		d.chaine+='0;\n'
 		print(d.chaine)
 		i = 0
 		debate_open = True
@@ -141,12 +141,12 @@ class DebateContext:
 			print(self.reporter.fg_green.format("############     ROUND {}     #############".format(i+1)))
 			print()
 
-			d.chaine+=f"ROUND {i+1},"
+			d.chaine+=f"ROUND {i+1};"
 			start_time = time()
 			debate_open = self.agent_pool.play(d)
 			end_time = time()
-			d.chaine+='{:.2f}'.format(self.public_graph.nodes[0]["weight"])+','
-			d.chaine+=f'{end_time - start_time },\n'
+			d.chaine+='{:.2f}'.format(self.public_graph.nodes[0]["weight"])+';'
+			d.chaine+=f'{end_time - start_time };\n'
 			i+=1
 		print(d.chaine)
 		with open(f"{d.directory}/details.csv",'w') as f:
@@ -247,17 +247,18 @@ class AgentPool:
 		print("###################################")
 
 	def play(self,d):
+		d = DebateManager.get_instance()
 		someone_spoke = False
 		for agent in self.agents:
 			move = agent.play()
 			# (s)he will pass. Who is next...
 			if not move: 
-				d.chaine+='{:.2f}'.format(self.context.public_graph.nodes[0]["weight"])+',-,'
+				d.chaine+='{:.2f}'.format(self.context.public_graph.nodes[0]["weight"])+';-;'
 				continue
 			someone_spoke = True
 			u, v = move
 			print(self.context.reporter.inform("{} say {} to attack {}.".format(agent.name, u, v)))
-			d.chaine+='{:.2f}'.format(self.context.public_graph.nodes[0]["weight"])+","+f"{u},"
+			d.chaine+='{:.2f}'.format(self.context.public_graph.nodes[0]["weight"])+";"+f"{move};"
 			self.context.public_graph.add_edge(u, v)
 			self.context.universal_graph.nodes[u]["played"] = True
 			self.context.semantic.update_public_graph(move)
@@ -517,7 +518,8 @@ class ArgumentGraph:
 		save_graph(graph, path, ext, id=0)
 
 def save_graph(graph,agents_graph):
-	directory = DebateManager.get_instance().directory
+	debate=DebateManager.get_instance()
+	directory = debate.directory
 	"""if not os.path.exists(f"graphs/{directory}"):
 	    os.mkdir(f"graphs/{directory}")"""
 	with open(f"{directory}/graph_univ.apx","w") as f:

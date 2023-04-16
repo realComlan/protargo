@@ -17,7 +17,6 @@ if __name__ == "__main__":
 	# 	fig, ax = plt.subplots()
 	# 	nx.draw(a.own_graph, pos=pos, ax=ax, with_labels=True, font_weight='bold')
 	# 	ax.set_title(a)
-	# 	fig.tight_layout()
 	# 	plt.show()
 
 	save_graph(ctx.get_universal_graph(), ctx.agent_pool.agents)
