@@ -258,7 +258,9 @@ class AgentPool:
 			move = []
 			arguments_spoken = agent.play()
             #print(f"arguments spoken {arguments_spoken} by {agent.name}")
-			if not arguments_spoken: break
+			if not arguments_spoken: 
+				d.chaine+='-,'
+				continue
 			for i in range(len(arguments_spoken)-1):
 				u, v = arguments_spoken[i+1], arguments_spoken[i]
             #	print(f"spokekkkkk : {u} {v}")
@@ -268,10 +270,10 @@ class AgentPool:
 				print(self.context.reporter.inform(f"{agent.name} say {u} to attack {v}."))
 			self.context.semantic.update_public_graph(move)
 			# (s)he will pass. Who is next...
-			if not move: 
-				# self.context.reporter.take_note()
-				d.chaine+='-,'
-				continue
+			# if not move: 
+			# 	# self.context.reporter.take_note()
+			# 	d.chaine+='-,'
+			# 	continue
 			someone_spoke = True
 			d.chaine+=f"{':'.join([str(u) for u, _ in move])},"
 
