@@ -136,8 +136,8 @@ class DebateContext:
 		d.chaine+="Run Time;\n"
 		d.chaine+="Initial State;"
 		for a in self.agent_pool.agents:
-			d.chaine+=' - '+';'+'{:.2f}'.format(a.own_graph.nodes[0]["weight"])+';'
-		d.chaine+='{:.2f}'.format(self.public_graph.nodes[0]["weight"])+';'
+			d.chaine+=' - '+';'+f'{a.own_graph.nodes[0]["weight"]};'
+		d.chaine+=f'{self.public_graph.nodes[0]["weight"]};'
 		d.chaine+='0;\n'
 		print(d.chaine)
 		i = 0
@@ -151,7 +151,7 @@ class DebateContext:
 			start_time = time()
 			debate_open = self.agent_pool.play(d)
 			end_time = time()
-			d.chaine+='{:.2f}'.format(self.public_graph.nodes[0]["weight"])+';'
+			d.chaine+=f'{self.public_graph.nodes[0]["weight"]};'
 			d.chaine+=f'{end_time - start_time };\n'
 			i+=1
 		print(d.chaine)
@@ -259,7 +259,9 @@ class AgentPool:
 			move = []
 			arguments_spoken = agent.play()
             #print(f"arguments spoken {arguments_spoken} by {agent.name}")
-			if not arguments_spoken: break
+			if not arguments_spoken: 
+				d.chaine+='-;'
+				continue
 			for i in range(len(arguments_spoken)-1):
 				u, v = arguments_spoken[i+1], arguments_spoken[i]
             #	print(f"spokekkkkk : {u} {v}")
@@ -269,10 +271,10 @@ class AgentPool:
 				print(self.context.reporter.inform(f"{agent.name} say {u} to attack {v}."))
 			self.context.semantic.update_public_graph(move)
 			# (s)he will pass. Who is next...
-			if not move: 
-				# self.context.reporter.take_note()
-				d.chaine+='{:.2f}'.format(self.context.public_graph.nodes[0]["weight"])+';-;'
-				continue
+			# if not move: 
+			# 	# self.context.reporter.take_note()
+			# 	d.chaine+='-,'
+			# 	continue
 			someone_spoke = True
 			d.chaine+=f"{','.join([str(u) for u, _ in move])};"
 
