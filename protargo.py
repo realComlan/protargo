@@ -33,7 +33,7 @@ Bye.
 		self.num_agents = 10
 		self.num_arguments = 10
 		self.num_root_branch = 5 
-		self.directory= self.getDirectory()
+		self.directory= None
 		self.chaine=""
 		self.seed = -1
 		self.universal_graph_path = None
@@ -84,6 +84,7 @@ Bye.
 				elif argv[i] == '--max-arguments-at-once':
 					self.max_arguments_at_once = int(argv[i+1])
 				i+=2
+			self.directory = self.getDirectory()
 		except Exception as e:
 			print(f"\x1b[41m {e}\033[00m")
 			print(DebateManager.help_string)
