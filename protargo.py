@@ -14,13 +14,13 @@ This is Protargo 1.0. Thanks for using it.
 
 Example command:
 
-python3 main.py --agents 10 --root-branch 5 --arguments 10 --rand-seed 123 --max-arguments-at-once 2
+python3 main.py --agents 10 --root-branch 5 --max-arguments-per-branch 10 --rand-seed 123 --max-arguments-at-once 2
 
 	Details:
 
 	--agents 10 : [REQUIRED] the number of agents to join the debate
 	--root-branch 5 : [REQUIRED] the number of branches at the root 
-	--arguments 10 : [REQUIRED] the maximum number of arguments per branch
+	--max-arguments-per-branch 10 : [REQUIRED] the maximum number of arguments per branch
 	--rand-seed 123 : [OPTIONAL] the random seed that is used to build personal graphs
 	--universal-graph universe.apx : [OPTIONAL] a description of the universal graph
 	--max-arguments-at-once: [OPTIONAL] how many arguments are the agents allowed to speak 
@@ -67,13 +67,13 @@ Bye.
 		try:
 			i=0
 			while i < len(argv):
-				if argv[i] not in {'--agents', '--root-branch', '--arguments', '--rand-seed', '--universal-graph', '--max-arguments-at-once'}:
+				if argv[i] not in {'--agents', '--root-branch', '--max-arguments-per-branch', '--rand-seed', '--universal-graph', '--max-arguments-at-once'}:
 					print("param {} not recognized".format(argv[i]))
 					print(DebateManager.help_string)
 					sys.exit()
 				if argv[i] == '--agents':
 					self.num_agents = int(argv[i+1])
-				elif argv[i] == '--arguments':
+				elif argv[i] == '--max-arguments-per-branch ':
 					self.num_arguments = int(argv[i+1])	
 				elif argv[i] == '--root-branch':
 					self.num_root_branch = int(argv[i+1])
@@ -259,6 +259,7 @@ class AgentPool:
 			move = []
 			arguments_spoken = agent.play()
             #print(f"arguments spoken {arguments_spoken} by {agent.name}")
+			# (s)he will pass. Who is next...
 			if not arguments_spoken: 
 				d.chaine+='-;'
 				continue
@@ -270,11 +271,6 @@ class AgentPool:
 				move.append((u, v))
 				print(self.context.reporter.inform(f"{agent.name} say {u} to attack {v}."))
 			self.context.semantic.update_public_graph(move)
-			# (s)he will pass. Who is next...
-			# if not move: 
-			# 	# self.context.reporter.take_note()
-			# 	d.chaine+='-,'
-			# 	continue
 			someone_spoke = True
 			d.chaine+=f"{','.join([str(u) for u, _ in move])};"
 
