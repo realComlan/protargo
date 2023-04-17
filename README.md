@@ -1,4 +1,4 @@
-# protargo
+# protargo: Experimentation on the dynamics of argumentation protocols
 
 Experimentation on the dynamics of argumentation protocols. This project serves as the code for experimentation on various strategies used multiagent argumentation 
 and their influence on the performance of the agents argumentation. 
