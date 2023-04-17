@@ -323,7 +323,7 @@ class AbstractAgent:
 		total_num_arguments = len(UG.nodes())
 
 		random.seed(seed)
-		sample_size = random.randint(0, 2*total_num_arguments//3)
+		sample_size = random.randint(1, 2*total_num_arguments//3)
 		#randomly select arguments (other than the central issue) from the universe...
 		selected_arguments = random.choice(list(UG.nodes)[1:], size=sample_size, replace=False)
 		#print(self.name, " selected ", selected_arguments)
