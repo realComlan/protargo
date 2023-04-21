@@ -2,7 +2,7 @@
 
 #1. Context
 
-This project serves as the code for experimentation on various strategies used multiagent argumentation 
+This project serves as the framework for experimentation on various strategies used multiagent argumentation 
 and their influence on the performance of the agents argumentation. 
 
 #2. How to run the code 
