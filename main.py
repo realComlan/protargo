@@ -6,9 +6,10 @@ if __name__ == "__main__":
 	dbm = DebateManager.get_instance()
 	ctx = dbm.get_context()
 
-	print("-------------------------------------------universal graph--------------------------------------")
-	print(ctx.get_universal_graph().nodes())
-	print("------------------------------------------------------------------------------------------------")
+	if DebateManager.IN_DEBUG_MODE:
+		print("-------------------------------------------universal graph--------------------------------------")
+		print(ctx.get_universal_graph().nodes())
+		print("------------------------------------------------------------------------------------------------")
 
 	agents = ctx.agent_pool.agents
 	# for a in agents:
