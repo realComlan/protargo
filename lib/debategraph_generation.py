@@ -67,8 +67,8 @@ def is_debate_graph(graph):
     nb_disconnected_arg = 0
 
     for arg in graph:
-        pred = list(g.predecessors(arg))
-        succ = list(g.successors(arg))
+        pred = list(graph.predecessors(arg))
+        succ = list(graph.successors(arg))
         if(len(succ) == 0):
             nb_empty_successors+=1
             if(len(pred) == 0):
