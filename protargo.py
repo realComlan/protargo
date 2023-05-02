@@ -236,9 +236,17 @@ class DebateContext:
 		# self.context.reporter.persist()
 		with open(f"{debate_manager.directory}/details.csv",'w') as f:
 			f.write(debate_manager.chaine)
-		with open('experiementation.csv','a') as file:
-			#file.write("Number of agent;root branch;max-arguments-per-branch; rand-seed;max-arguments-at-once;number of round;runtime;issu value;\n")	
-			file.write(f"{debate_manager.num_agents};{debate_manager.num_root_branch};{debate_manager.num_arguments};{debate_manager.seed};{debate_manager.max_arguments_at_once};{i-1};{end_timeP - start_timeP };{self.public_graph.nodes[0]['weight']};\n")	
+		###
+		if os.path.isfile('experiementation.csv'):
+			print("existe --------------------")
+			
+			with open('experiementation.csv','a') as file:
+				file.write(f"{debate_manager.num_agents};{debate_manager.num_root_branch};{debate_manager.num_arguments};{debate_manager.seed};{debate_manager.max_arguments_at_once};{i-1};{end_timeP - start_timeP };{self.public_graph.nodes[0]['weight']};\n")
+		else:
+			print("existe pas--------------------")
+			with open('experiementation.csv','a') as file:
+				file.write("Number of agent;root branch;max-arguments-per-branch; rand-seed;max-arguments-at-once;number of round;runtime;issu value;\n")
+				file.write(f"{debate_manager.num_agents};{debate_manager.num_root_branch};{debate_manager.num_arguments};{debate_manager.seed};{debate_manager.max_arguments_at_once};{i-1};{end_timeP - start_timeP };{self.public_graph.nodes[0]['weight']};\n")
 		print(self.reporter.bg_cyan.format("Debate finished in {} rounds.".format(i-1)))
 		print("Final issue value: {}.".format(self.public_graph.nodes[0]["weight"]))
 
