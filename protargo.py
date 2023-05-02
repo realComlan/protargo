@@ -130,6 +130,7 @@ class DebateContext:
 
 	def loop(self):
 		d = DebateManager.get_instance()
+		start_timeP = time()
 		d.chaine = "Round;"
 		for a in self.agent_pool.agents:
 			d.chaine+=f"issu before;{a.name};"
@@ -155,10 +156,14 @@ class DebateContext:
 			d.chaine+=f'{self.public_graph.nodes[0]["weight"]};'
 			d.chaine+=f'{end_time - start_time };\n'
 			i+=1
+		end_timeP = time()
 		print(d.chaine)
 		# self.context.reporter.persist()
 		with open(f"{d.directory}/details.csv",'w') as f:
 			f.write(d.chaine)
+		with open('experiementation.csv','a') as file:
+			#file.write("Number of agent;root branch;max-arguments-per-branch; rand-seed;max-arguments-at-once;number of round;runtime;issu value;\n")	
+			file.write(f"{d.num_agents};{d.num_root_branch};{d.num_arguments};{d.seed};{d.max_arguments_at_once};{i-1};{end_timeP - start_timeP };{self.public_graph.nodes[0]['weight']};\n")	
 		print(self.reporter.bg_cyan.format("Debate finished in {} rounds.".format(i-1)))
 		print("Final issue value: {}.".format(self.public_graph.nodes[0]["weight"]))
 
