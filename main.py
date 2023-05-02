@@ -20,7 +20,7 @@ if __name__ == "__main__":
 	# 	ax.set_title(a)
 	# 	plt.show()
 
-	save_graph(ctx.get_universal_graph(), ctx.agent_pool.agents)
+	#save_graph(ctx.get_universal_graph(), ctx.agent_pool.agents)
 	ctx.loop()
 	"""with open('experiementation.csv','a') as file:
 		file.write("Number of agent;root branch;max-arguments-per-branch; rand-seed;max-arguments-at-once;number of round;runtime;issu value;\n")"""

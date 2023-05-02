@@ -88,6 +88,55 @@ Bye.
 			os.mkdir(f"graphs/{directory}")
 			return f"graphs/{directory}"
 		return f"graphs/{directory}" 
+	
+
+	####################save the personal graph############################
+	def save_graph(self):
+		#debate=DebateManager.get_instance()
+		directory = self.directory
+		#if not os.path.exists(f"graphs/{directory}"):
+			#os.mkdir(f"graphs/{directory}")
+		with open(f"{directory}/graph_univ.apx","w") as f:
+			f.write(self.export_apx(self.context.universal_graph))
+			for agent in self.context.agent_pool.agents:
+				#if DebateManager.IN_DEBUG_MODE: print(i)
+				with open(f"{directory}/{agent.name}.apx","w") as f:
+					f.write(self.export_apx(agent.own_graph))
+			
+	#for i in range(len(agents_graph)):	
+	###this method save a personal graph in an apx file
+	def export_apx(self,graph):
+		
+		"""
+		Function to convert a given graph to aspartix format (apx).
+		"""
+		graph_apx = ""
+		for arg in graph:
+			graph_apx += "arg(" + str(arg) + ").\n"
+		#for a,b in graph.adjacency():
+			#for c, d in b.items():
+				#pass
+				#print(a,c,d)
+		#print("graph adjacency : ",graph.adjacency())
+		for arg1, dicoAtt in graph.adjacency():
+			if dicoAtt:
+				for arg2, eattr in dicoAtt.items():
+					graph_apx += "att(" + str(arg1) + "," + str(arg2) + ").\n"
+		if DebateManager.IN_DEBUG_MODE: print(graph_apx)
+		return graph_apx
+	
+
+##this method save the informations passed to execution of the protocole
+	def saveExperimental(self,times,round):
+		if os.path.isfile('experiementation.csv'):
+			with open('experiementation.csv','a') as file:
+				file.write(f"{self.num_agents};{self.num_root_branch};{self.num_arguments};{self.seed};{self.max_arguments_at_once};{round};{times};{self.context.public_graph.nodes[0]['weight']};\n")
+		else:
+			with open('experiementation.csv','a') as file:
+				file.write("Number of agent;root branch;max-arguments-per-branch; rand-seed;max-arguments-at-once;number of round;runtime;issu value;\n")
+				file.write(f"{self.num_agents};{self.num_root_branch};{self.num_arguments};{self.seed};{self.max_arguments_at_once};{round};{times };{self.context.public_graph.nodes[0]['weight']};\n")
+
+	#######################################################################
 
 	def parse_inputs(self):
 		"""
@@ -199,6 +248,7 @@ class DebateContext:
 
 	def loop(self):
 		debate_manager = DebateManager.get_instance()
+		debate_manager.save_graph()
 		debate_manager.chaine = "Round;"
 		for agent in self.agent_pool.agents:
 			debate_manager.chaine += f"issue before;{agent.name};"
@@ -237,16 +287,17 @@ class DebateContext:
 		with open(f"{debate_manager.directory}/details.csv",'w') as f:
 			f.write(debate_manager.chaine)
 		###
-		if os.path.isfile('experiementation.csv'):
-			print("existe --------------------")
-			
+		round=i-1
+		times=end_timeP - start_timeP
+		
+		debate_manager.saveExperimental(round=round,times=times)
+		"""if os.path.isfile('experiementation.csv'):
 			with open('experiementation.csv','a') as file:
 				file.write(f"{debate_manager.num_agents};{debate_manager.num_root_branch};{debate_manager.num_arguments};{debate_manager.seed};{debate_manager.max_arguments_at_once};{i-1};{end_timeP - start_timeP };{self.public_graph.nodes[0]['weight']};\n")
 		else:
-			print("existe pas--------------------")
 			with open('experiementation.csv','a') as file:
 				file.write("Number of agent;root branch;max-arguments-per-branch; rand-seed;max-arguments-at-once;number of round;runtime;issu value;\n")
-				file.write(f"{debate_manager.num_agents};{debate_manager.num_root_branch};{debate_manager.num_arguments};{debate_manager.seed};{debate_manager.max_arguments_at_once};{i-1};{end_timeP - start_timeP };{self.public_graph.nodes[0]['weight']};\n")
+				file.write(f"{debate_manager.num_agents};{debate_manager.num_root_branch};{debate_manager.num_arguments};{debate_manager.seed};{debate_manager.max_arguments_at_once};{i-1};{end_timeP - start_timeP };{self.public_graph.nodes[0]['weight']};\n")"""
 		print(self.reporter.bg_cyan.format("Debate finished in {} rounds.".format(i-1)))
 		print("Final issue value: {}.".format(self.public_graph.nodes[0]["weight"]))
 
@@ -795,23 +846,25 @@ class ArgumentGraph:
 	def save_graph(graph, path, ext, id=0):
 		save_graph(graph, path, ext, id=0)
 
-def save_graph(graph,agents_graph):
+"""def save_graph(graph,agents_graph):
 	debate=DebateManager.get_instance()
 	directory = debate.directory
-	"""if not os.path.exists(f"graphs/{directory}"):
-	    os.mkdir(f"graphs/{directory}")"""
+	#if not os.path.exists(f"graphs/{directory}"):
+		#os.mkdir(f"graphs/{directory}")
 	with open(f"{directory}/graph_univ.apx","w") as f:
-		f.write(export_apx(graph))
-	for i in range(len(agents_graph)):
-		if DebateManager.IN_DEBUG_MODE: print(i)
-		with open(f"{directory}/agent{i+1}.apx","w") as f:
-		    f.write(export_apx(agents_graph[i].own_graph))
+		f.write(export_apx(debate.context.universal_graph))
+		for agent in debate.context.agent_pool.agents:
+			#if DebateManager.IN_DEBUG_MODE: print(i)
+			with open(f"{directory}/{agent.name}.apx","w") as f:
+				f.write(export_apx(agent.own_graph))
+		
+	#for i in range(len(agents_graph)):
+		
+		
 		    
 def export_apx(graph):
     
-    """
-    Function to convert a given graph to aspartix format (apx).
-    """
+    #Function to convert a given graph to aspartix format (apx).
     graph_apx = ""
     for arg in graph:
         graph_apx += "arg(" + str(arg) + ").\n"
@@ -826,7 +879,7 @@ def export_apx(graph):
                 graph_apx += "att(" + str(arg1) + "," + str(arg2) + ").\n"
     if DebateManager.IN_DEBUG_MODE: print(graph_apx)
     return graph_apx
-
+"""
 ###########################################
 #	Debate Reporter World
 ###########################################
