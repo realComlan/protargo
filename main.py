@@ -1,6 +1,8 @@
+# from protargoo.DebateManagers import *
+# from protargoo.Graphs import *
 from protargo import *
-import networkx as nx
-import matplotlib.pyplot as plt
+# import networkx as nx
+# import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
 	dbm = DebateManager.get_instance()
@@ -20,5 +22,5 @@ if __name__ == "__main__":
 	# 	ax.set_title(a)
 	# 	plt.show()
 
-	save_graph(ctx.get_universal_graph(), ctx.agent_pool.agents)
+	ArgumentGraph.save_graph(ctx.get_universal_graph(), ctx.agent_pool.agents)
 	ctx.loop()	

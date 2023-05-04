@@ -27,6 +27,7 @@ python3 main.py --agents 10 --root-branch 5 --max-arguments-per-branch 10 --rand
 	--universal-graph universe.apx : [OPTIONAL] a description of the universal graph
 	--max-arguments-at-once: [OPTIONAL] how many arguments are the agents allowed to speak 
 							at most each time they have the floor. Default value is 1.
+	--nodebug: [OPTIONAL] no debugging information is printed on the stdout
 
 Bye.
 	"""
@@ -217,7 +218,7 @@ class DebateContext:
 		debate_open = True
 		while debate_open:
 			print()
-			print(self.reporter.fg_green.format("############      ROUND {}     #############".format(i+1)))
+			print(self.reporter.fg_green.format(f"############      ROUND {i+1}     #############"))
 			print()
 			# The reporter incrementally builds a new line for CSV file
 			# using this "chaine" field.
@@ -227,12 +228,12 @@ class DebateContext:
 			debate_open = self.agent_pool.play()
 			end_time = time()
 			debate_manager.chaine += f'{self.public_graph.nodes[0]["weight"]};'
-			debate_manager.chaine += f'{end_time - start_time };\n'
+			debate_manager.chaine += f'{end_time-start_time};\n'
 			# Update the counter.
 			i+=1
 		if DebateManager.IN_DEBUG_MODE: print(debate_manager.chaine)
 		# self.context.reporter.persist()
-		with open(f"{debate_manager.directory}/details.csv",'w') as f: 
+		with open(f"{debate_manager.directory}/details.csv",'w') as f:
 			f.write(debate_manager.chaine)
 		print(self.reporter.bg_cyan.format("Debate finished in {} rounds.".format(i-1)))
 		print("Final issue value: {}.".format(self.public_graph.nodes[0]["weight"]))
@@ -305,7 +306,7 @@ class DebateContext:
 
 	def is_an_attack_on_issue(self, arg):
 		return self.universal_graph.nodes[arg]["dist_to_issue"]%2 == 1
-	
+
 
 #################################
 #	Debate Agents World
@@ -610,11 +611,12 @@ class PluralSpeechProtocol(AbstractProtocol):
 				best_move = best_deep
 				min_gap = new_gap
 		if DebateManager.IN_DEBUG_MODE: print("possible moves (attacker, attacked): ", self.possible_moves)
+		print("-----nlkjlkjlk----")
+
 		return best_move
 
 	def can_play(self):
 		return len(self.possible_moves)
-
 
 #################################
 #	Debate Semantic World
@@ -646,6 +648,7 @@ class BasicSemantic(AbstractSemantic):
 		"""
 		for attacker, attacked in move:
 			graph.add_node(attacker)
+			# graph.add_edge(attacker, attacked)
 			graph.nodes[attacker]["weight"] = 1
 			graph.nodes[attacked]["weight"] = 1/(1+sum([graph.nodes[_]["weight"] for _ in graph.predecessors(attacked)]))
 			# which argument is the attacked argument attacking?
@@ -699,7 +702,7 @@ class BasicSemantic(AbstractSemantic):
 			while v:
 				v = v[0]
 				s = weights[u] + sum([public_graph.nodes[_]["weight"] for _ in public_graph.predecessors(v) if _ != u])
-				weights[v] = 1 / (1+s)
+				weights[v] = 1/(1+s)
 				u, v = v, list(public_graph.successors(v))
 			# The gap between personal issue value and public_graph
 			# issue value IF a chain of arguments of length i is played
@@ -709,14 +712,18 @@ class BasicSemantic(AbstractSemantic):
                 #print(f"best depth {i}, real issue value {abs(weights[0]-own_graph.nodes[0]['weight'])}, min gap {gap_from_personal_issue_value}")
 				best_depth = i
 				best_weight = weights[0]
+				#print(f"{deep_arguments[:best_depth]} from {deep_arguments} improved the min gap {hypothetic_gap}")
 				min_gap = hypothetic_gap
+			else:
+				print(f"{deep_arguments[:i]} from {deep_arguments} did not help because (hypothetic gap) {hypothetic_gap} >= {min_gap} (min gap).")
+				#pass
 		# print(f"hypothetic value analysis of {attacker} --> {attacked} gave: {best_weight}, {[attacked]+deep_arguments[:best_depth+1]}")
 		return best_weight, [attacked]+deep_arguments[:best_depth]
 	
 	def front_weight_for_deep_arg_of_length(self, n):
 		"""
 		Here we compute the weight of an argument A1 which is the 
-		front of a chain of arguments A1 <-- A2 <-- A3...<-- An
+		front of a chain of arguments A1 <-- A2 <-- A3...<-- An 
 		of size n. We just noticed that the weight of A1 is the 
 		ratio of the nth fibonacci number by the (n+1)th. 
 		The limit of this weight when n tends towards infinity is 
@@ -776,43 +783,42 @@ class ArgumentGraph:
 	def graph_name_generation(graph, ext, id=0):
 		return graph_name_generation(graph, ext, id=0)
 
-	def export_apx(graph):
-		export_apx(graph)
+	# def export_apx(graph):
+	# 	export_apx(graph)
 
-	def save_graph(graph, path, ext, id=0):
-		save_graph(graph, path, ext, id=0)
+	# def save_graph(graph, path, ext, id=0):
+	# 	save_graph(graph, path, ext, id=0)
 
-def save_graph(graph,agents_graph):
-	debate=DebateManager.get_instance()
-	directory = debate.directory
-	"""if not os.path.exists(f"graphs/{directory}"):
-	    os.mkdir(f"graphs/{directory}")"""
-	with open(f"{directory}/graph_univ.apx","w") as f:
-		f.write(export_apx(graph))
-	for i in range(len(agents_graph)):
-		if DebateManager.IN_DEBUG_MODE: print(i)
-		with open(f"{directory}/agent{i+1}.apx","w") as f:
-		    f.write(export_apx(agents_graph[i].own_graph))
+	def save_graph(graph, agents_graph):
+		debate=DebateManager.get_instance()
+		directory = debate.directory
+		"""if not os.path.exists(f"graphs/{directory}"):
+			os.mkdir(f"graphs/{directory}")"""
+		with open(f"{directory}/graph_univ.apx","w") as f:
+			f.write(export_apx(graph))
+		for i in range(len(agents_graph)):
+			if DebateManager.IN_DEBUG_MODE: print(i)
+			with open(f"{directory}/agent{i+1}.apx","w") as f:
+				f.write(export_apx(agents_graph[i].own_graph))
 		    
-def export_apx(graph):
-    
-    """
-    Function to convert a given graph to aspartix format (apx).
-    """
-    graph_apx = ""
-    for arg in graph:
-        graph_apx += "arg(" + str(arg) + ").\n"
-    #for a,b in graph.adjacency():
-        #for c, d in b.items():
-            #pass
-	    	#print(a,c,d)
-    #print("graph adjacency : ",graph.adjacency())
-    for arg1, dicoAtt in graph.adjacency():
-        if dicoAtt:
-            for arg2, eattr in dicoAtt.items():
-                graph_apx += "att(" + str(arg1) + "," + str(arg2) + ").\n"
-    if DebateManager.IN_DEBUG_MODE: print(graph_apx)
-    return graph_apx
+	def export_apx(graph):
+		"""
+		Function to convert a given graph to aspartix format (apx).
+		"""
+		graph_apx = ""
+		for arg in graph:
+			graph_apx += "arg(" + str(arg) + ").\n"
+		#for a,b in graph.adjacency():
+			#for c, d in b.items():
+				#pass
+				#print(a,c,d)
+		#print("graph adjacency : ",graph.adjacency())
+		for arg1, dicoAtt in graph.adjacency():
+			if dicoAtt:
+				for arg2, eattr in dicoAtt.items():
+					graph_apx += "att(" + str(arg1) + "," + str(arg2) + ").\n"
+		if DebateManager.IN_DEBUG_MODE: print(graph_apx)
+		return graph_apx
 
 ###########################################
 #	Debate Reporter World
