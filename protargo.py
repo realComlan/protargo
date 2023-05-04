@@ -28,6 +28,8 @@ python3 main.py --agents 10 --root-branch 5 --max-arguments-per-branch 10 --rand
 	--max-arguments-at-once: [OPTIONAL] how many arguments are the agents allowed to speak 
 							at most each time they have the floor. Default value is 1.
 	--nodebug: [OPTIONAL] no debugging information is printed on the stdout
+	--batch-mode: [OPTIONAL] please add this option when running an experiments where the script is called
+					many times. Adding this option will prevent the script from saving too many details about each graph
 
 Bye.
 	"""
@@ -216,6 +218,7 @@ class DebateContext:
 		# the debate stays open while there was at least one argument spoken 
 		# during the previous round of speeches
 		debate_open = True
+		start_timeP = time()
 		while debate_open:
 			print()
 			print(self.reporter.fg_green.format(f"############      ROUND {i+1}     #############"))
@@ -231,10 +234,22 @@ class DebateContext:
 			debate_manager.chaine += f'{end_time-start_time};\n'
 			# Update the counter.
 			i+=1
+		end_timeP = time()
 		if DebateManager.IN_DEBUG_MODE: print(debate_manager.chaine)
 		# self.context.reporter.persist()
 		with open(f"{debate_manager.directory}/details.csv",'w') as f:
 			f.write(debate_manager.chaine)
+			###
+		if os.path.isfile('experimentation.csv'):
+			print("existe --------------------")
+			
+			with open('experiementation.csv','a') as file:
+				file.write(f"{debate_manager.num_agents};{debate_manager.num_root_branch};{debate_manager.num_arguments};{debate_manager.seed};{debate_manager.max_arguments_at_once};{i-1};{end_timeP - start_timeP };{self.public_graph.nodes[0]['weight']};\n")
+		else:
+			print("existe pas--------------------")
+			with open('experiementation.csv','a') as file:
+				file.write("Number of agent;root branch;max-arguments-per-branch; rand-seed;max-arguments-at-once;number of round;runtime;issu value;\n")
+				file.write(f"{debate_manager.num_agents};{debate_manager.num_root_branch};{debate_manager.num_arguments};{debate_manager.seed};{debate_manager.max_arguments_at_once};{i-1};{end_timeP - start_timeP };{self.public_graph.nodes[0]['weight']};\n")
 		print(self.reporter.bg_cyan.format("Debate finished in {} rounds.".format(i-1)))
 		print("Final issue value: {}.".format(self.public_graph.nodes[0]["weight"]))
 
