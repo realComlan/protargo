@@ -9,7 +9,7 @@ and their influence on the performance of the agents.
 
 To run the code, please do: 	
 
- python3 main.py --agents 10 --root-branch 5 --max-arguments-per-branch 10 --rand-seed 123 --max-arguments-at-once 2
+ python3 main.py --agents 10 --root-branch 5 --max-arguments-per-branch 10 --rand-seed 123 --max-arguments-at-once 2 --nodebug
 
 	Details:
 
@@ -20,6 +20,7 @@ To run the code, please do:
 	--universal-graph universe.apx : [OPTIONAL] a description of the universal graph
 	--max-arguments-at-once: [OPTIONAL] how many arguments are the agents allowed to speak 
 							at most each time they have the floor. Default value is 1.
+	--nodebug: [OPTIONAL] no debugging information is printed on the stdout
 
 #2. Results
 
