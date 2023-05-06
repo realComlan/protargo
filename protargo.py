@@ -6,17 +6,20 @@ import time
 from lib.debategraph_generation import * 
 from numpy import random
 from time import time
+from fractions import Fraction
 
 class DebateManager:
 	instance = None
 	# By default, we are in debug mode
 	IN_DEBUG_MODE = True
+	BATCH_MODE = False
+	FRACTIONAL = False
 	help_string = """
 This is Protargo 1.0. Thanks for using it.	
 
 Example command:
 
-python3 main.py --agents 10 --root-branch 5 --max-arguments-per-branch 10 --rand-seed 123 --max-arguments-at-once 2 --nodebug
+python3 main.py --agents 10 --root-branch 5 --max-arguments-per-branch 10 --rand-seed 123 --max-arguments-at-once 2 --nodebug --fractional
 
 	Details:
 
@@ -30,6 +33,7 @@ python3 main.py --agents 10 --root-branch 5 --max-arguments-per-branch 10 --rand
 	--nodebug: [OPTIONAL] no debugging information is printed on the stdout
 	--batch-mode: [OPTIONAL] please add this option when running an experiments where the script is called
 					many times. Adding this option will prevent the script from saving too many details about each graph
+	--fractional: [OPTIONAL] whether we should use infinite precision for numbers 
 
 Bye.
 	"""
@@ -104,12 +108,15 @@ Bye.
 		try:
 			i=0
 			while i < len(argv):
-				if argv[i] not in {'--agents', '--nodebug', '--root-branch', '--max-arguments-per-branch', '--rand-seed', '--universal-graph', '--max-arguments-at-once'}:
+				if argv[i] not in {'--agents', '--nodebug', '--root-branch', '--max-arguments-per-branch', '--rand-seed', '--universal-graph', '--max-arguments-at-once', '--fractional', '--batch-mode'}:
 					print("param {} not recognized".format(argv[i]))
 					print(DebateManager.help_string)
 					sys.exit()
 				if argv[i] == '--agents':
 					self.num_agents = int(argv[i+1])
+					if self.num_agents < 2:
+						print(f"{argv[i]} cannot be < 1!")
+						sys.exit()
 				elif argv[i] == '--max-arguments-per-branch':
 					self.num_arguments = int(argv[i+1])	
 					if self.num_arguments < 1:
@@ -128,6 +135,18 @@ Bye.
 				elif argv[i] == '--nodebug':
 					DebateManager.IN_DEBUG_MODE = False
 					# --debug expects no value. So the 
+					# following line serves to make up for
+					# the i+=2 which follows.
+					i-=1
+				elif argv[i] == '--batch-mode':
+					DebateManager.BATCH_MODE = False
+					# --batch-mode expects no value. So the 
+					# following line serves to make up for
+					# the i+=2 which follows.
+					i-=1
+				elif argv[i] == '--fractional':
+					DebateManager.FRACTIONAL = True
+					# --fractional expects no value. So the 
 					# following line serves to make up for
 					# the i+=2 which follows.
 					i-=1
@@ -193,7 +212,7 @@ class DebateContext:
 					nb_arg_tree_min=1, \
 					nb_arg_tree_max=branch_trees_max_size, \
 					seed=seed)
-			
+	
 		self.build_public_graph()
 		self.semantic = BasicSemantic()
 		self.semantic.set_public_graph(self.public_graph)
@@ -214,18 +233,18 @@ class DebateContext:
 		debate_manager.chaine += '0;\n'
 		if DebateManager.IN_DEBUG_MODE: print(debate_manager.chaine)
 		# A counter for the number of rounds played before the consensus is reached.
-		i = 0
+		self.round_counter = 0
 		# the debate stays open while there was at least one argument spoken 
 		# during the previous round of speeches
 		debate_open = True
 		start_timeP = time()
 		while debate_open:
 			print()
-			print(self.reporter.fg_green.format(f"############      ROUND {i+1}     #############"))
+			print(self.reporter.fg_green.format(f"############      ROUND {self.round_counter+1}     #############"))
 			print()
 			# The reporter incrementally builds a new line for CSV file
 			# using this "chaine" field.
-			debate_manager.chaine += f"ROUND {i+1};"
+			debate_manager.chaine += f"ROUND {self.round_counter+1};"
 			start_time = time()
 			# Let each agent in the pool play their best arguments
 			debate_open = self.agent_pool.play()
@@ -233,25 +252,24 @@ class DebateContext:
 			debate_manager.chaine += f'{self.public_graph.nodes[0]["weight"]};'
 			debate_manager.chaine += f'{end_time-start_time};\n'
 			# Update the counter.
-			i+=1
+			self.round_counter+=1
 		end_timeP = time()
 		if DebateManager.IN_DEBUG_MODE: print(debate_manager.chaine)
 		# self.context.reporter.persist()
-		with open(f"{debate_manager.directory}/details.csv",'w') as f:
+		with open(f"{debate_manager.directory}/details.csv", 'w') as f:
 			f.write(debate_manager.chaine)
 			###
 		if os.path.isfile('experimentation.csv'):
 			print("existe --------------------")
-			
-			with open('experiementation.csv','a') as file:
+			with open('experiementation.csv', 'a') as file:
 				file.write(f"{debate_manager.num_agents};{debate_manager.num_root_branch};{debate_manager.num_arguments};{debate_manager.seed};{debate_manager.max_arguments_at_once};{i-1};{end_timeP - start_timeP };{self.public_graph.nodes[0]['weight']};\n")
 		else:
 			print("existe pas--------------------")
 			with open('experiementation.csv','a') as file:
 				file.write("Number of agent;root branch;max-arguments-per-branch; rand-seed;max-arguments-at-once;number of round;runtime;issu value;\n")
 				file.write(f"{debate_manager.num_agents};{debate_manager.num_root_branch};{debate_manager.num_arguments};{debate_manager.seed};{debate_manager.max_arguments_at_once};{i-1};{end_timeP - start_timeP };{self.public_graph.nodes[0]['weight']};\n")
-		print(self.reporter.bg_cyan.format("Debate finished in {} rounds.".format(i-1)))
-		print("Final issue value: {}.".format(self.public_graph.nodes[0]["weight"]))
+		print(self.reporter.bg_cyan.format("Debate finished in {} rounds.".format(self.round_counter-1)))
+		print(f"Final issue value: {float(self.public_graph.nodes[0]['weight'])}.")
 
 	def get_instance():
 		if not DebateContext.instance:
@@ -269,7 +287,7 @@ class DebateContext:
 		for argument in self.universal_graph:
 			# Whether this argument has been played already.
 			# Before the first round, all arguments are hidden...
-			# except for the central
+			# except for the central.
 			self.universal_graph.nodes[argument]["played"] = False
 			# The distance to the issue. Useful to optimize the choice of best move.
 			self.universal_graph.nodes[argument]["dist_to_issue"] = nx.shortest_path_length(self.universal_graph, argument, 0)
@@ -374,33 +392,6 @@ class AgentPool:
 		# presented at a particular round, none will be added late: the debate is over.
 		return someone_spoke
 
-
-#  This is a backup before changing the strategy of argument choice.
-#  In the backed up version, the arguments are played au coup par coup.
-#  But in the newer version it is played simultaneously.
-#
-# 	def play(self, d):
-# 		someone_spoke = False
-# 		for agent in self.agents:
-# 			d.chaine+='{},'.format(self.context.public_graph.nodes[0]["weight"])
-# 			move = []
-# 			for _ in range(self.context.max_arguments_at_once):
-# 				argument_spoken = agent.play()
-# 				if not argument_spoken: break
-# 				u, v = argument_spoken
-# 				self.context.public_graph.add_edge(u, v)
-# 				self.context.universal_graph.nodes[u]["played"] = True
-# 				self.context.semantic.update_public_graph([argument_spoken])
-# 				move.append(argument_spoken)
-# 				print(self.context.reporter.inform(f"{agent.name} say {u} to attack {v}."))
-# 			# (s)he will pass. Who is next...
-# 			if not move: 
-# 				# self.context.reporter.take_note()
-# 				d.chaine+='-,'
-# 				continue
-# 			someone_spoke = True
-# 			d.chaine+=f"{':'.join([str(u) for u, _ in move])},"
-
 	def __len__(self):
 		return len(self.agents)
 
@@ -421,7 +412,6 @@ class AbstractAgent:
 	def generate_own_graph(self, seed):
 		UG = self.context.get_universal_graph()
 		total_num_arguments = len(UG.nodes())
-
 		random.seed(seed)
         # sample_size = random.randint(1, total_num_arguments)
 		sample_size = random.randint(1, 2*total_num_arguments//3)
@@ -461,15 +451,7 @@ class AbstractAgent:
 		return self.protocol.best_move() 
 
 	def __str__(self):
-		return "{} [goal_value : {}]".format(self.name, self.protocol.goal_issue_value)
-
-class BasicAgent(AbstractAgent):
-
-	def __init__(self, name):
-		super().__init__(name)
-
-	def create_protocol(self):
-		return BasicProtocol()
+		return f"{self.name} has {len(self.own_graph)} personal arguments, with goal issue value {float(self.protocol.goal_issue_value)}."
 
 class PluralSpeechAgent(AbstractAgent):
 
@@ -544,48 +526,6 @@ class AbstractProtocol:
 
 	def get_own_graph(self):
 		return self.own_graph
-
-# class BasicProtocol(AbstractProtocol):
-
-# 	def __init__(self):
-# 		super().__init__()
-# 		self.name = 'BasicProtocol'
-# 		self.max_arguments_at_once = self.context.max_arguments_at_once
-			
-# 	def best_move(self):
-# 		self.generate_possible_moves()
-# 		best_move = None
-# 		attacking = True
-
-# 		if self.context.get_current_issue_value() == self.goal_issue_value:
-# 			return None
-# 		elif self.context.get_current_issue_value() > self.goal_issue_value:
-# 			attacking = True
-# 		else:
-# 			attacking = False
-
-# 		min_gap = abs(self.context.get_current_issue_value()-self.goal_issue_value)
-# 		for attacker, attacked in self.possible_moves:
-# 			#print(attacker, " --> ", attacked)
-# 			# It makes sense to play divergent arguments only when I can say more 
-# 			# than one thing at a time thus we check the max_argument_at_once > 1
-# 			if self.context.max_arguments_at_once == 1 \
-# 				 	and attacking \
-# 						and not self.context.is_an_attack_on_issue(attacker):
-# 				#	print(attacker, " is not attacking issue but I need to attack it")
-# 				continue
-# 			if self.context.max_arguments_at_once == 1 \
-# 				and not attacking \
-# 					and self.context.is_an_attack_on_issue(attacker):
-# 				#	print(attacker, " is not attacking issue but I need to attack it")
-# 				continue
-# 			h_v = self.context.semantic.hypothetic_value(self.public_graph, (attacker, attacked))
-# 			if min_gap > abs(h_v - self.goal_issue_value):
-# 				best_move = (attacker, attacked)
-# 				min_gap = abs(h_v - self.goal_issue_value)
-
-# 		return best_move
-
 class PluralSpeechProtocol(AbstractProtocol):
 
 	def __init__(self):
@@ -620,17 +560,21 @@ class PluralSpeechProtocol(AbstractProtocol):
 				if DebateManager.IN_DEBUG_MODE: print(attacker, " is attacking issue but I need to defend it")
 				continue
 			# We compute the hypothetic value
-			h_v, best_deep = self.context.semantic.hypothetic_value(self.public_graph, (attacker, attacked), own_graph=self.own_graph)
+			h_v, best_deep_argument = self.context.semantic.hypothetic_value(self.public_graph, (attacker, attacked), own_graph=self.own_graph)
 			new_gap = abs(h_v - self.goal_issue_value)
 			if new_gap < min_gap:
-				best_move = best_deep
+				best_move = best_deep_argument
 				min_gap = new_gap
+
 		if DebateManager.IN_DEBUG_MODE: print("possible moves (attacker, attacked): ", self.possible_moves)
-		print("-----nlkjlkjlk----")
 
 		return best_move
 
 	def can_play(self):
+		"""
+		If there are possible moves then we can 
+		play.
+		"""
 		return len(self.possible_moves)
 
 #################################
@@ -665,14 +609,14 @@ class BasicSemantic(AbstractSemantic):
 			graph.add_node(attacker)
 			# graph.add_edge(attacker, attacked)
 			graph.nodes[attacker]["weight"] = 1
-			graph.nodes[attacked]["weight"] = 1/(1+sum([graph.nodes[_]["weight"] for _ in graph.predecessors(attacked)]))
+			graph.nodes[attacked]["weight"] = Fraction(1, 1+sum([graph.nodes[_]["weight"] for _ in graph.predecessors(attacked)]))
 			# which argument is the attacked argument attacking?
 			v = list(graph.successors(attacked))
-			# while the attacked argument is attacking some other argument 
+			# while the attacked argument is attacking some other argument
 			# (i.e. while we haven't reached the issue yet) we loop...
 			while v:
 				v = v[0]
-				graph.nodes[v]["weight"] = 1/(1+sum([graph.nodes[_]["weight"] for _ in graph.predecessors(v)]))
+				graph.nodes[v]["weight"] = Fraction(1, 1+sum([graph.nodes[_]["weight"] for _ in graph.predecessors(v)]))
 				v = list(graph.successors(v))
 
 	def compute_semantic_weight(self, public_graph, argument, params=None):
@@ -711,27 +655,39 @@ class BasicSemantic(AbstractSemantic):
 			# when that particular attack is performed.
 			weights = dict()
 			front_weight = self.front_weight_for_deep_arg_of_length(i)
+			#print(f"front weight for len {i}: {front_weight}")
 			# We update the weight of the attacked argument
-			weights[attacked] = 1/(1+front_weight+sum([public_graph.nodes[_]["weight"] for _ in public_graph.predecessors(attacked)]))
+			# For all calculations here we use fraction in order to 
+			# preserve the precision of the calculations avoid errors 
+			# due to Python's approximations
+			weights[attacked] = Fraction(1, 1+front_weight+sum([public_graph.nodes[_]["weight"] for _ in public_graph.predecessors(attacked)]))
+			#print(f"weights[attacked]={weights[attacked]}")
 			u, v = attacked, list(public_graph.successors(attacked))
 			while v:
 				v = v[0]
 				s = weights[u] + sum([public_graph.nodes[_]["weight"] for _ in public_graph.predecessors(v) if _ != u])
-				weights[v] = 1/(1+s)
+				weights[v] = Fraction(1, 1+s)
+				if attacked == 4064:
+					print('-- s = ', s)
+					print(f"preds {[(i, public_graph.nodes[i]['weight']) for i in list(public_graph.predecessors(v))]}")
+
+					print(f"weights[{v}]={weights[v]}")
+					print(f"front weight: {front_weight}")
 				u, v = v, list(public_graph.successors(v))
 			# The gap between personal issue value and public_graph
 			# issue value IF a chain of arguments of length i is played
 			# starting from the attacker
+			#print(f"weights[0]={weights[0]}")
 			hypothetic_gap = abs(weights[0]-own_graph.nodes[0]["weight"])
 			if hypothetic_gap < min_gap:
-                #print(f"best depth {i}, real issue value {abs(weights[0]-own_graph.nodes[0]['weight'])}, min gap {gap_from_personal_issue_value}")
+                #print(f"best_depth {i}, real issue value {abs(weights[0]-own_graph.nodes[0]['weight'])}, min gap {gap_from_personal_issue_value}")
 				best_depth = i
 				best_weight = weights[0]
-				#print(f"{deep_arguments[:best_depth]} from {deep_arguments} improved the min gap {hypothetic_gap}")
+				#print(f"     {deep_arguments[:best_depth]} from {deep_arguments} improved the min gap {hypothetic_gap}")
 				min_gap = hypothetic_gap
 			else:
-				print(f"{deep_arguments[:i]} from {deep_arguments} did not help because (hypothetic gap) {hypothetic_gap} >= {min_gap} (min gap).")
-				#pass
+				#print(f"{deep_arguments[:i]} from {deep_arguments} did not help because (hypothetic gap) {hypothetic_gap} >= {min_gap} (min gap).")
+				pass
 		# print(f"hypothetic value analysis of {attacker} --> {attacked} gave: {best_weight}, {[attacked]+deep_arguments[:best_depth+1]}")
 		return best_weight, [attacked]+deep_arguments[:best_depth]
 	
@@ -748,7 +704,7 @@ class BasicSemantic(AbstractSemantic):
 		while n:
 			a, b = b, b+a
 			n -= 1
-		return a/b
+		return Fraction(a, b)
 
 	def deep_arguments(self, graph, argument, depth):
 		"""
@@ -775,7 +731,9 @@ class BasicSemantic(AbstractSemantic):
 		"""
 		for predecessor in graph.predecessors(root):
 			BasicSemantic.backward_update_graph(self, graph, predecessor)
-		graph.nodes[root]["weight"] = 1/(1+sum([graph.nodes[predecessor]["weight"] for predecessor in graph.predecessors(root)]))
+		#graph.nodes[root]["weight"] = 1/(1+sum([graph.nodes[predecessor]["weight"] for predecessor in graph.predecessors(root)]))
+		graph.nodes[root]["weight"] = Fraction(1, (1+sum([graph.nodes[predecessor]["weight"] for predecessor in graph.predecessors(root)])))
+
 
 	def semantic_weight(self, graph, argument):
 		pass 
@@ -805,7 +763,7 @@ class ArgumentGraph:
 	# 	save_graph(graph, path, ext, id=0)
 
 	def save_graph(graph, agents_graph):
-		debate=DebateManager.get_instance()
+		debate = DebateManager.get_instance()
 		directory = debate.directory
 		"""if not os.path.exists(f"graphs/{directory}"):
 			os.mkdir(f"graphs/{directory}")"""

@@ -3,7 +3,7 @@ import os
 
 if __name__ == "__main__":
     # The number of agents
-    AGENTS_NUM_MIN = 0
+    AGENTS_NUM_MIN = 2
     AGENTS_NUM_MAX = 1000
     AGENTS_NUM_STEP = 5
     # The number of arguments attacking the 
@@ -31,4 +31,4 @@ if __name__ == "__main__":
             for max_arguments_per_branch in range(MAX_ARGUMENTS_PER_BRANCH_MIN, MAX_ARGUMENTS_PER_BRANCH_MAX, MAX_ARGUMENTS_PER_BRANCH_STEP):
                 for rand_seed in range(RANDOM_SEED_MIN, RANDOM_SEED_MAX, RANDOM_SEED_STEP):
                     for max_arguments_at_once in range(MAX_ARGUMENTS_AT_ONCE_MIN, MAX_ARGUMENTS_AT_ONCE_MAX, MAX_ARGUMENTS_AT_ONCE_STEP):
-                        os.system(f"python3 main.py --agents {agent_num} --root-branch {root_branch} --max-arguments-per-branch {max_arguments_per_branch} --rand-seed {rand_seed} --max-arguments-at-once {max_arguments_at_once} --nodebug")
+                        os.system(f"python3 main.py --agents {agent_num} --root-branch {root_branch} --max-arguments-per-branch {max_arguments_per_branch} --rand-seed {rand_seed} --max-arguments-at-once {max_arguments_at_once} --nodebug --")
