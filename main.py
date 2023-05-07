@@ -13,7 +13,6 @@ if __name__ == "__main__":
 		print(ctx.get_universal_graph().nodes())
 		print("------------------------------------------------------------------------------------------------")
 
-	agents = ctx.agent_pool.agents
 	# for a in agents:
 	# 	print("{}'s own graph: ".format(a.name), a.own_graph)
 	# 	pos = nx.spring_layout(a.own_graph)

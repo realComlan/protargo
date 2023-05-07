@@ -8,7 +8,7 @@ if __name__ == "__main__":
     AGENTS_NUM_STEP = 5
     # The number of arguments attacking the 
     # issue directly
-    ROOT_BRANCH_MIN = 1
+    ROOT_BRANCH_MIN = 2
     ROOT_BRANCH_MAX = 1000
     ROOT_BRANCH_STEP = 5
     # The maximum number of arguements 
@@ -31,4 +31,4 @@ if __name__ == "__main__":
             for max_arguments_per_branch in range(MAX_ARGUMENTS_PER_BRANCH_MIN, MAX_ARGUMENTS_PER_BRANCH_MAX, MAX_ARGUMENTS_PER_BRANCH_STEP):
                 for rand_seed in range(RANDOM_SEED_MIN, RANDOM_SEED_MAX, RANDOM_SEED_STEP):
                     for max_arguments_at_once in range(MAX_ARGUMENTS_AT_ONCE_MIN, MAX_ARGUMENTS_AT_ONCE_MAX, MAX_ARGUMENTS_AT_ONCE_STEP):
-                        os.system(f"python3 main.py --agents {agent_num} --root-branch {root_branch} --max-arguments-per-branch {max_arguments_per_branch} --rand-seed {rand_seed} --max-arguments-at-once {max_arguments_at_once} --nodebug --")
+                        os.system(f"python3 main.py --agents {agent_num} --root-branch {root_branch} --max-arguments-per-branch {max_arguments_per_branch} --rand-seed {rand_seed} --max-arguments-at-once {max_arguments_at_once} --nodebug --fractional")

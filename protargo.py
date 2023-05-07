@@ -91,9 +91,9 @@ Bye.
         """
 		directory = "protocol-arg"+str(datetime.datetime.now())
 		print(directory)
-		if not os.path.exists(f"graphs/{directory}"):
-			os.mkdir(f"graphs/{directory}")
-			return f"graphs/{directory}"
+		#if not os.path.exists(f"graphs/{directory}"):
+			#os.mkdir(f"graphs/{directory}")
+			#return f"graphs/{directory}"
 		return f"graphs/{directory}" 
 	
 
@@ -270,7 +270,7 @@ class DebateContext:
 
 	def loop(self):
 		debate_manager = DebateManager.get_instance()
-		debate_manager.save_graph()
+		#debate_manager.save_graph()
 		debate_manager.chaine = "Round;"
 		for agent in self.agent_pool.agents:
 			debate_manager.chaine += f"issue before;{agent.name};"
@@ -306,8 +306,8 @@ class DebateContext:
 		end_timeP = time()
 		if DebateManager.IN_DEBUG_MODE: print(debate_manager.chaine)
 		# self.context.reporter.persist()
-		with open(f"{debate_manager.directory}/details.csv", 'w') as f:
-			f.write(debate_manager.chaine)
+		#with open(f"{debate_manager.directory}/details.csv", 'w') as f:
+			#f.write(debate_manager.chaine)
 		###
 		round=self.round_counter-1
 		times=end_timeP - start_timeP
