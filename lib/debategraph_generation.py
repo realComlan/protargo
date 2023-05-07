@@ -34,7 +34,7 @@ def debate_graph_generation(nb_branch_star_min=6, nb_branch_star_max=15, nb_arg_
     star = nx.DiGraph([(u,v) for (u,v) in star.edges()]).reverse()
 
     for nodes_star in range(1,nb_branch_star+1):
-        nb = random.randrange(nb_arg_tree_min,nb_arg_tree_max)
+        nb = random.randrange(nb_arg_tree_min,nb_arg_tree_max+1)
         labels = {i: cpt+i for i in range(1,nb)}
         labels[0] = nodes_star
 
