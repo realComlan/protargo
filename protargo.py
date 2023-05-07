@@ -709,12 +709,6 @@ class BasicSemantic(AbstractSemantic):
 				v = v[0]
 				s = weights[u] + sum([public_graph.nodes[_]["weight"] for _ in public_graph.predecessors(v) if _ != u])
 				weights[v] = Fraction(1, 1+s)
-				if attacked == 4064:
-					print('-- s = ', s)
-					print(f"preds {[(i, public_graph.nodes[i]['weight']) for i in list(public_graph.predecessors(v))]}")
-
-					print(f"weights[{v}]={weights[v]}")
-					print(f"front weight: {front_weight}")
 				u, v = v, list(public_graph.successors(v))
 			# The gap between personal issue value and public_graph
 			# issue value IF a chain of arguments of length i is played
