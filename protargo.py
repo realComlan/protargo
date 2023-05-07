@@ -459,7 +459,9 @@ class AbstractAgent:
 		sample_size = random.randint(1, total_num_arguments)
         # sample_size = total_num_arguments//2
 		# randomly select arguments (other than the central issue) from the universe...
-		selected_arguments = random.choice(list(UG.nodes)[1:], size=sample_size, replace=False)
+		arguments = list(UG.nodes)[1:]
+		random.shuffle(arguments)
+		selected_arguments = random.choice(arguments, size=sample_size, replace=False)
 		#print(self.name, " selected ", selected_arguments)
 		self.own_graph = nx.DiGraph()
 		# The personal graph of each agent must contain
