@@ -95,13 +95,14 @@ Bye.
 		called a great number of times), then we turn off the saving of the details of the execution of the 
 		debate.
         """
-		if DebateManager.BATCH_MODE: return False
+		#if DebateManager.BATCH_MODE: return False
 		directory = "protocol-arg"+str(datetime.datetime.now())
 		print(directory)
 		if not os.path.exists(f"graphs/{directory}"):
 			os.mkdir(f"graphs/{directory}")
 			return f"graphs/{directory}"
 		return f"graphs/{directory}" 
+		
 
 	def parse_inputs(self):
 		"""
@@ -162,11 +163,26 @@ Bye.
 				elif argv[i] == '--max-arguments-at-once':
 					self.max_arguments_at_once = 1 if int(argv[i+1]) < 1 else int(argv[i+1])
 				i+=2
-			self.directory = self.getDirectory()
+			#self.directory = self.getDirectory()
 		except Exception as e:
 			print(f"\x1b[41m {e}\033[00m")
 			print(DebateManager.help_string)
 			sys.exit()
+
+	def saveExperimental(self,round,times):
+		if os.path.isfile('experimentation.csv'):
+			if DebateManager.IN_DEBUG_MODE: print("existe --------------------")
+			with open('experimentation.csv', 'a') as file:
+				std_goal_values = self.get_std_of_goal_issue_values()
+				std_from_final_issue_value = self.get_deviation_from_final_issue_values()
+				file.write(f"{self.num_agents};{self.num_root_branch};{self.num_arguments};{self.seed};{self.max_arguments_at_once};{self.round_counter-1};{times }; {':'.join(self.frequence_of_simulteaous_arg)}; {float(self.public_graph.nodes[0]['weight'])}; {std_goal_values}; {std_from_final_issue_value}\n")
+		else:
+			if DebateManager.IN_DEBUG_MODE: print("existe pas -----------------")
+			with open('experimentation.csv','a') as file:
+				file.write("Number of agent;root branch;max-arguments-per-branch; rand-seed; max-arguments-at-once; number of round; runtime; freq-deep-arg; issue value; std_goal_issues_values; std_from_final_issue_value\n")
+				std_goal_values = self.get_std_of_goal_issue_values()
+				std_from_final_issue_value = self.get_deviation_from_final_issue_values()
+				file.write(f"{self.num_agents};{self.num_root_branch};{self.num_arguments};{self.seed};{self.max_arguments_at_once};{self.round_counter-1};{times}; {':'.join(self.frequence_of_simulteaous_arg)}; {float(self.public_graph.nodes[0]['weight'])}; {std_goal_values}; {std_from_final_issue_value}\n")
 	
 	def get_instance():
 		"""
@@ -266,9 +282,19 @@ class DebateContext:
 		end_timeP = time()
 		if DebateManager.IN_DEBUG_MODE: print(debate_manager.chaine)
 		# self.context.reporter.persist()
+		#with open(f"{debate_manager.directory}/details.csv", 'w') as f:
+			#f.write(debate_manager.chaine)
+		###
+		round=self.round_counter-1
+		times=end_timeP - start_timeP
+		
+		#debate_manager.saveExperimental(round=round,times=times)
+		"""if os.path.isfile('experiementation.csv'):
+			with open('experiementation.csv','a') as file:
+				file.write(f"{debate_manager.num_agents};{debate_manager.num_root_branch};{debate_manager.num_arguments};{debate_manager.seed};{debate_manager.max_arguments_at_once};{round};{end_timeP - start_timeP };{self.public_graph.nodes[0]['weight']};\n")
 		if not DebateManager.BATCH_MODE:
 			with open(f"{debate_manager.directory}/details.csv", 'w') as f:
-				f.write(debate_manager.chaine)
+				f.write(debate_manager.chaine)"""
 			###
 		self.frequence_of_simulteaous_arg = [str(i) for i in self.frequence_of_simulteaous_arg][:20]
 
@@ -285,7 +311,7 @@ class DebateContext:
 				std_goal_values = self.get_std_of_goal_issue_values()
 				std_from_final_issue_value = self.get_deviation_from_final_issue_values()
 				file.write(f"{debate_manager.num_agents};{debate_manager.num_root_branch};{debate_manager.num_arguments};{debate_manager.seed};{debate_manager.max_arguments_at_once};{self.round_counter-1};{end_timeP-start_timeP }; {':'.join(self.frequence_of_simulteaous_arg)}; {float(self.public_graph.nodes[0]['weight'])}; {std_goal_values}; {std_from_final_issue_value}\n")
-
+		#ArgumentGraph().save_graph()
 		if DebateManager.IN_DEBUG_MODE: 
 			print(self.reporter.bg_cyan.format("Debate finished in {} rounds.".format(self.round_counter-1)))
 			print(f"Final issue value: {float(self.public_graph.nodes[0]['weight'])}.")
@@ -296,8 +322,7 @@ class DebateContext:
 		return DebateContext.instance
 
 	def get_std_of_goal_issue_values(self):
-		"""
-		Compute the standard deviation on the goal issue values of the 
+		"""Compute the standard deviation on the goal issue values of the 
 		debate agents.
 		"""
 		return np.std([float(self.agent_pool.agents[i].own_graph.nodes[0]['weight']) for i in range(len(self.agent_pool.agents))])
@@ -536,8 +561,8 @@ class AbstractProtocol:
 		self.possible_moves = []
 
 	def generate_possible_moves(self):
-		"""
-		The possible moves are all attacker --> attacked such that:
+		
+		"""The possible moves are all attacker --> attacked such that:
 			- The attacker (attacking argument) is known to the current agent
 			- The attacker has not been proposed to the public graph yet
 			- The attacked is in the public_graph already
@@ -800,22 +825,26 @@ class ArgumentGraph:
 	# def save_graph(graph, path, ext, id=0):
 	# 	save_graph(graph, path, ext, id=0)
 
-	def save_graph(graph, agents_graph):
+	def save_graph(self):
+		
 		# If the script is run is batch mode then 
 		# we will not save all these details on the disk
-		if DebateManager.BATCH_MODE: return False
+		#if DebateManager.BATCH_MODE: return False
+		#The aim of this method is to store the graph of the differents agents to a separeted file in the same folder 
 		debate_manager = DebateManager.get_instance()
-		directory = debate_manager.directory
+		directory = debate_manager.getDirectory()
 		"""if not os.path.exists(f"graphs/{directory}"):
 			os.mkdir(f"graphs/{directory}")"""
 		with open(f"{directory}/graph_univ.apx","w") as f:
-			f.write(export_apx(graph))
-		for i in range(len(agents_graph)):
-			if DebateManager.IN_DEBUG_MODE: print(i)
-			with open(f"{directory}/agent{i+1}.apx","w") as f:
-				f.write(export_apx(agents_graph[i].own_graph))
+			f.write(self.export_apx(debate_manager.context.universal_graph))
+		for agent in debate_manager.context.agent_pool.agents:
+			#if DebateManager.IN_DEBUG_MODE: print(i)
+			with open(f"{directory}/{agent.name}.apx","w") as f:
+				f.write(self.export_apx(agent.own_graph))
+		with open(f"{directory}/details.csv", 'w') as f:
+				f.write(debate_manager.chaine)
 		    
-	def export_apx(graph):
+	def export_apx(self,graph):
 		"""
 		Function to convert a given graph to aspartix format (apx).
 		"""
