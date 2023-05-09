@@ -4,6 +4,8 @@ import os
 import datetime
 import time
 from lib.debategraph_generation import * 
+from collections import defaultdict
+import numpy as np
 from numpy import random
 from time import time
 from fractions import Fraction
@@ -88,62 +90,19 @@ Bye.
         debates are stored. The details of personal graphs of all agents as well as the details 
         of the execution of the protocol (which arguments each debator played, which was the value 
         of the issue before and after the did play their argument.
+	
+		If the script is launched with the option --batch-mode (when running experiments where the script is 
+		called a great number of times), then we turn off the saving of the details of the execution of the 
+		debate.
         """
+		#if DebateManager.BATCH_MODE: return False
 		directory = "protocol-arg"+str(datetime.datetime.now())
 		print(directory)
-		#if not os.path.exists(f"graphs/{directory}"):
-			#os.mkdir(f"graphs/{directory}")
-			#return f"graphs/{directory}"
+		if not os.path.exists(f"graphs/{directory}"):
+			os.mkdir(f"graphs/{directory}")
+			return f"graphs/{directory}"
 		return f"graphs/{directory}" 
-	
-
-	####################save the personal graph############################
-	def save_graph(self):
-		#debate=DebateManager.get_instance()
-		directory = self.directory
-		#if not os.path.exists(f"graphs/{directory}"):
-			#os.mkdir(f"graphs/{directory}")
-		with open(f"{directory}/graph_univ.apx","w") as f:
-			f.write(self.export_apx(self.context.universal_graph))
-			for agent in self.context.agent_pool.agents:
-				#if DebateManager.IN_DEBUG_MODE: print(i)
-				with open(f"{directory}/{agent.name}.apx","w") as f:
-					f.write(self.export_apx(agent.own_graph))
-			
-	#for i in range(len(agents_graph)):	
-	###this method save a personal graph in an apx file
-	def export_apx(self,graph):
 		
-		"""
-		Function to convert a given graph to aspartix format (apx).
-		"""
-		graph_apx = ""
-		for arg in graph:
-			graph_apx += "arg(" + str(arg) + ").\n"
-		#for a,b in graph.adjacency():
-			#for c, d in b.items():
-				#pass
-				#print(a,c,d)
-		#print("graph adjacency : ",graph.adjacency())
-		for arg1, dicoAtt in graph.adjacency():
-			if dicoAtt:
-				for arg2, eattr in dicoAtt.items():
-					graph_apx += "att(" + str(arg1) + "," + str(arg2) + ").\n"
-		if DebateManager.IN_DEBUG_MODE: print(graph_apx)
-		return graph_apx
-	
-
-##this method save the informations passed to execution of the protocole
-	def saveExperimental(self,times,round):
-		if os.path.isfile('experiementation.csv'):
-			with open('experiementation.csv','a') as file:
-				file.write(f"{self.num_agents};{self.num_root_branch};{self.num_arguments};{self.seed};{self.max_arguments_at_once};{round};{times};{self.context.public_graph.nodes[0]['weight']};\n")
-		else:
-			with open('experiementation.csv','a') as file:
-				file.write("Number of agent;root branch;max-arguments-per-branch; rand-seed;max-arguments-at-once;number of round;runtime;issu value;\n")
-				file.write(f"{self.num_agents};{self.num_root_branch};{self.num_arguments};{self.seed};{self.max_arguments_at_once};{round};{times };{self.context.public_graph.nodes[0]['weight']};\n")
-
-	#######################################################################
 
 	def parse_inputs(self):
 		"""
@@ -188,7 +147,7 @@ Bye.
 					# the i+=2 which follows.
 					i-=1
 				elif argv[i] == '--batch-mode':
-					DebateManager.BATCH_MODE = False
+					DebateManager.BATCH_MODE = True
 					# --batch-mode expects no value. So the 
 					# following line serves to make up for
 					# the i+=2 which follows.
@@ -204,11 +163,26 @@ Bye.
 				elif argv[i] == '--max-arguments-at-once':
 					self.max_arguments_at_once = 1 if int(argv[i+1]) < 1 else int(argv[i+1])
 				i+=2
-			self.directory = self.getDirectory()
+			#self.directory = self.getDirectory()
 		except Exception as e:
 			print(f"\x1b[41m {e}\033[00m")
 			print(DebateManager.help_string)
 			sys.exit()
+
+	def saveExperimental(self,round,times):
+		if os.path.isfile('experimentation.csv'):
+			if DebateManager.IN_DEBUG_MODE: print("existe --------------------")
+			with open('experimentation.csv', 'a') as file:
+				std_goal_values = self.get_std_of_goal_issue_values()
+				std_from_final_issue_value = self.get_deviation_from_final_issue_values()
+				file.write(f"{self.num_agents};{self.num_root_branch};{self.num_arguments};{self.seed};{self.max_arguments_at_once};{self.round_counter-1};{times }; {':'.join(self.frequence_of_simulteaous_arg)}; {float(self.public_graph.nodes[0]['weight'])}; {std_goal_values}; {std_from_final_issue_value}\n")
+		else:
+			if DebateManager.IN_DEBUG_MODE: print("existe pas -----------------")
+			with open('experimentation.csv','a') as file:
+				file.write("Number of agent;root branch;max-arguments-per-branch; rand-seed; max-arguments-at-once; number of round; runtime; freq-deep-arg; issue value; std_goal_issues_values; std_from_final_issue_value\n")
+				std_goal_values = self.get_std_of_goal_issue_values()
+				std_from_final_issue_value = self.get_deviation_from_final_issue_values()
+				file.write(f"{self.num_agents};{self.num_root_branch};{self.num_arguments};{self.seed};{self.max_arguments_at_once};{self.round_counter-1};{times}; {':'.join(self.frequence_of_simulteaous_arg)}; {float(self.public_graph.nodes[0]['weight'])}; {std_goal_values}; {std_from_final_issue_value}\n")
 	
 	def get_instance():
 		"""
@@ -270,7 +244,8 @@ class DebateContext:
 
 	def loop(self):
 		debate_manager = DebateManager.get_instance()
-		#debate_manager.save_graph()
+		self.frequence_of_simulteaous_arg = [0]*(self.max_arguments_at_once+1)
+		#frequence_of_simulteaous_arg = [0]*debate_manager.max_arguments_at_once
 		debate_manager.chaine = "Round;"
 		for agent in self.agent_pool.agents:
 			debate_manager.chaine += f"issue before;{agent.name};"
@@ -289,9 +264,10 @@ class DebateContext:
 		debate_open = True
 		start_timeP = time()
 		while debate_open:
-			print()
-			print(self.reporter.fg_green.format(f"############      ROUND {self.round_counter+1}     #############"))
-			print()
+			if DebateManager.IN_DEBUG_MODE:
+				print()
+				print(self.reporter.fg_green.format(f"############      ROUND {self.round_counter+1}     #############"))
+				print()
 			# The reporter incrementally builds a new line for CSV file
 			# using this "chaine" field.
 			debate_manager.chaine += f"ROUND {self.round_counter+1};"
@@ -312,22 +288,57 @@ class DebateContext:
 		round=self.round_counter-1
 		times=end_timeP - start_timeP
 		
-		debate_manager.saveExperimental(round=round,times=times)
+		#debate_manager.saveExperimental(round=round,times=times)
 		"""if os.path.isfile('experiementation.csv'):
 			with open('experiementation.csv','a') as file:
-				file.write(f"{debate_manager.num_agents};{debate_manager.num_root_branch};{debate_manager.num_arguments};{debate_manager.seed};{debate_manager.max_arguments_at_once};{i-1};{end_timeP - start_timeP };{self.public_graph.nodes[0]['weight']};\n")
+				file.write(f"{debate_manager.num_agents};{debate_manager.num_root_branch};{debate_manager.num_arguments};{debate_manager.seed};{debate_manager.max_arguments_at_once};{round};{end_timeP - start_timeP };{self.public_graph.nodes[0]['weight']};\n")
+		if not DebateManager.BATCH_MODE:
+			with open(f"{debate_manager.directory}/details.csv", 'w') as f:
+				f.write(debate_manager.chaine)"""
+			###
+		self.frequence_of_simulteaous_arg = [str(i) for i in self.frequence_of_simulteaous_arg][:20]
+
+		if os.path.isfile('experimentation.csv'):
+			if DebateManager.IN_DEBUG_MODE: print("existe --------------------")
+			with open('experimentation.csv', 'a') as file:
+				std_goal_values = self.get_std_of_goal_issue_values()
+				std_from_final_issue_value = self.get_deviation_from_final_issue_values()
+				file.write(f"{debate_manager.num_agents};{debate_manager.num_root_branch};{debate_manager.num_arguments};{debate_manager.seed};{debate_manager.max_arguments_at_once};{self.round_counter-1};{end_timeP-start_timeP }; {':'.join(self.frequence_of_simulteaous_arg)}; {float(self.public_graph.nodes[0]['weight'])}; {std_goal_values}; {std_from_final_issue_value}\n")
 		else:
-			with open('experiementation.csv','a') as file:
-				file.write("Number of agent;root branch;max-arguments-per-branch; rand-seed;max-arguments-at-once;number of round;runtime;issu value;\n")
-				file.write(f"{debate_manager.num_agents};{debate_manager.num_root_branch};{debate_manager.num_arguments};{debate_manager.seed};{debate_manager.max_arguments_at_once};{i-1};{end_timeP - start_timeP };{self.public_graph.nodes[0]['weight']};\n")"""
-		print(self.reporter.bg_cyan.format("Debate finished in {} rounds.".format(self.round_counter-1)))
-		print(f"Final issue value: {float(self.public_graph.nodes[0]['weight'])}.")
+			if DebateManager.IN_DEBUG_MODE: print("existe pas -----------------")
+			with open('experimentation.csv','a') as file:
+				file.write("Number of agent;root branch;max-arguments-per-branch; rand-seed; max-arguments-at-once; number of round; runtime; freq-deep-arg; issue value; std_goal_issues_values; std_from_final_issue_value\n")
+				std_goal_values = self.get_std_of_goal_issue_values()
+				std_from_final_issue_value = self.get_deviation_from_final_issue_values()
+				file.write(f"{debate_manager.num_agents};{debate_manager.num_root_branch};{debate_manager.num_arguments};{debate_manager.seed};{debate_manager.max_arguments_at_once};{self.round_counter-1};{end_timeP-start_timeP }; {':'.join(self.frequence_of_simulteaous_arg)}; {float(self.public_graph.nodes[0]['weight'])}; {std_goal_values}; {std_from_final_issue_value}\n")
+		#ArgumentGraph().save_graph()
+		if DebateManager.IN_DEBUG_MODE: 
+			print(self.reporter.bg_cyan.format("Debate finished in {} rounds.".format(self.round_counter-1)))
+			print(f"Final issue value: {float(self.public_graph.nodes[0]['weight'])}.")
 
 	def get_instance():
 		if not DebateContext.instance:
 			DebateContext.instance = DebateContext()
 		return DebateContext.instance
 
+	def get_std_of_goal_issue_values(self):
+		"""Compute the standard deviation on the goal issue values of the 
+		debate agents.
+		"""
+		return np.std([float(self.agent_pool.agents[i].own_graph.nodes[0]['weight']) for i in range(len(self.agent_pool.agents))])
+		
+	def get_deviation_from_final_issue_values(self):
+		"""
+		Compute the deviation of the personal issue values from the final value of the issue 
+		at the end of the debate.
+		"""
+		final_issue_value = float(self.public_graph.nodes[0]['weight'])
+		squares_sum = 0
+		for i in range(len(self.agent_pool.agents)):
+			personal_issue_val = float(self.agent_pool.agents[i].own_graph.nodes[0]['weight'])
+			squares_sum += (personal_issue_val-final_issue_value)**2
+		return np.sqrt(squares_sum/len(self.agent_pool))
+		
 	def build_universal_graph(self, nb_branch_star_min=6, nb_branch_star_max=15, nb_arg_tree_min=1, nb_arg_tree_max=6, seed=0):
 		# Here the first argument and the second one are the same in order to 
 		# ensure that the the constructed tree has exactly nb_branch_star_max branches
@@ -413,10 +424,11 @@ class AgentPool:
 			# for each agent
 			seed += 20220000
 		# Print a summary of the debate pool
-		print(self.context.reporter.inform("########### AGENTS POOL OF {} DEBATORS ###########".format(len(self.agents))))
-		for agent in self.agents:
-			print(agent)
-		print("###################################")
+		if DebateManager.IN_DEBUG_MODE: 
+			print(self.context.reporter.inform("########### AGENTS POOL OF {} DEBATORS ###########".format(len(self.agents))))
+			for agent in self.agents:
+				print(agent)
+			print("###################################")
 
 	def play(self):
 		someone_spoke = False
@@ -425,9 +437,12 @@ class AgentPool:
 			debate_manager.chaine+='{};'.format(self.context.public_graph.nodes[0]["weight"])
 			move = []
 			arguments_spoken = agent.play()
+			if arguments_spoken:
+				debate_manager.context.frequence_of_simulteaous_arg[len(arguments_spoken)-1]+=1
             #print(f"arguments spoken {arguments_spoken} by {agent.name}")
 			# (s)he will pass. Who is next...
 			if not arguments_spoken: 
+				debate_manager.context.frequence_of_simulteaous_arg[0]+=1
 				debate_manager.chaine+='-;'
 				continue
 			for i in range(len(arguments_spoken)-1):
@@ -435,7 +450,7 @@ class AgentPool:
 				self.context.public_graph.add_edge(attacker, attacked)
 				self.context.universal_graph.nodes[attacker]["played"] = True
 				move.append((attacker, attacked))
-				print(self.context.reporter.inform(f"{agent.name} say {attacker} to attack {attacked}."))
+				if DebateManager.IN_DEBUG_MODE: print(self.context.reporter.inform(f"{agent.name} say {attacker} to attack {attacked}."))
 			self.context.semantic.update_public_graph(move)
 			someone_spoke = True
 			debate_manager.chaine+=f"{','.join([str(attacker) for attacker, _ in move])};"
@@ -466,10 +481,12 @@ class AbstractAgent:
 		total_num_arguments = len(UG.nodes())
 		random.seed(seed)
         # sample_size = random.randint(1, total_num_arguments)
-		sample_size = random.randint(1, 2*total_num_arguments//3)
+		sample_size = random.randint(1, total_num_arguments)
         # sample_size = total_num_arguments//2
 		# randomly select arguments (other than the central issue) from the universe...
-		selected_arguments = random.choice(list(UG.nodes)[1:], size=sample_size, replace=False)
+		arguments = list(UG.nodes)[1:]
+		random.shuffle(arguments)
+		selected_arguments = random.choice(arguments, size=sample_size, replace=False)
 		#print(self.name, " selected ", selected_arguments)
 		self.own_graph = nx.DiGraph()
 		# The personal graph of each agent must contain
@@ -503,7 +520,7 @@ class AbstractAgent:
 		return self.protocol.best_move() 
 
 	def __str__(self):
-		return f"{self.name} has {len(self.own_graph)} personal arguments, with goal issue value {float(self.protocol.goal_issue_value)}."
+		return f"{self.name} has {len(self.own_graph)} personal arguments, with goal issue value {self.protocol.goal_issue_value}."
 
 class PluralSpeechAgent(AbstractAgent):
 
@@ -544,8 +561,8 @@ class AbstractProtocol:
 		self.possible_moves = []
 
 	def generate_possible_moves(self):
-		"""
-		The possible moves are all attacker --> attacked such that:
+		
+		"""The possible moves are all attacker --> attacked such that:
 			- The attacker (attacking argument) is known to the current agent
 			- The attacker has not been proposed to the public graph yet
 			- The attacked is in the public_graph already
@@ -719,12 +736,6 @@ class BasicSemantic(AbstractSemantic):
 				v = v[0]
 				s = weights[u] + sum([public_graph.nodes[_]["weight"] for _ in public_graph.predecessors(v) if _ != u])
 				weights[v] = Fraction(1, 1+s)
-				if attacked == 4064:
-					print('-- s = ', s)
-					print(f"preds {[(i, public_graph.nodes[i]['weight']) for i in list(public_graph.predecessors(v))]}")
-
-					print(f"weights[{v}]={weights[v]}")
-					print(f"front weight: {front_weight}")
 				u, v = v, list(public_graph.successors(v))
 			# The gap between personal issue value and public_graph
 			# issue value IF a chain of arguments of length i is played
@@ -814,40 +825,44 @@ class ArgumentGraph:
 	# def save_graph(graph, path, ext, id=0):
 	# 	save_graph(graph, path, ext, id=0)
 
-"""def save_graph(graph,agents_graph):
-	debate=DebateManager.get_instance()
-	directory = debate.directory
-	#if not os.path.exists(f"graphs/{directory}"):
-		#os.mkdir(f"graphs/{directory}")
-	with open(f"{directory}/graph_univ.apx","w") as f:
-		f.write(export_apx(debate.context.universal_graph))
-		for agent in debate.context.agent_pool.agents:
+	def save_graph(self):
+		
+		# If the script is run is batch mode then 
+		# we will not save all these details on the disk
+		#if DebateManager.BATCH_MODE: return False
+		#The aim of this method is to store the graph of the differents agents to a separeted file in the same folder 
+		debate_manager = DebateManager.get_instance()
+		directory = debate_manager.getDirectory()
+		"""if not os.path.exists(f"graphs/{directory}"):
+			os.mkdir(f"graphs/{directory}")"""
+		with open(f"{directory}/graph_univ.apx","w") as f:
+			f.write(self.export_apx(debate_manager.context.universal_graph))
+		for agent in debate_manager.context.agent_pool.agents:
 			#if DebateManager.IN_DEBUG_MODE: print(i)
 			with open(f"{directory}/{agent.name}.apx","w") as f:
-				f.write(export_apx(agent.own_graph))
-		
-	#for i in range(len(agents_graph)):
-		
-		
+				f.write(self.export_apx(agent.own_graph))
+		with open(f"{directory}/details.csv", 'w') as f:
+				f.write(debate_manager.chaine)
 		    
-def export_apx(graph):
-    
-    #Function to convert a given graph to aspartix format (apx).
-    graph_apx = ""
-    for arg in graph:
-        graph_apx += "arg(" + str(arg) + ").\n"
-    #for a,b in graph.adjacency():
-        #for c, d in b.items():
-            #pass
-	    	#print(a,c,d)
-    #print("graph adjacency : ",graph.adjacency())
-    for arg1, dicoAtt in graph.adjacency():
-        if dicoAtt:
-            for arg2, eattr in dicoAtt.items():
-                graph_apx += "att(" + str(arg1) + "," + str(arg2) + ").\n"
-    if DebateManager.IN_DEBUG_MODE: print(graph_apx)
-    return graph_apx
-"""
+	def export_apx(self,graph):
+		"""
+		Function to convert a given graph to aspartix format (apx).
+		"""
+		graph_apx = ""
+		for arg in graph:
+			graph_apx += "arg(" + str(arg) + ").\n"
+		#for a,b in graph.adjacency():
+			#for c, d in b.items():
+				#pass
+				#print(a,c,d)
+		#print("graph adjacency : ",graph.adjacency())
+		for arg1, dicoAtt in graph.adjacency():
+			if dicoAtt:
+				for arg2, eattr in dicoAtt.items():
+					graph_apx += "att(" + str(arg1) + "," + str(arg2) + ").\n"
+		if DebateManager.IN_DEBUG_MODE: print(graph_apx)
+		return graph_apx
+
 ###########################################
 #	Debate Reporter World
 ###########################################
