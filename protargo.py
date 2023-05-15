@@ -15,7 +15,7 @@ class DebateManager:
 	# By default, we are in debug mode
 	IN_DEBUG_MODE = True
 	BATCH_MODE = False
-	FRACTIONAL = False
+	# FRACTIONAL = False
 	help_string = """
 This is Protargo 1.0. Thanks for using it.	
 
@@ -35,7 +35,6 @@ python3 main.py --agents 10 --root-branch 5 --max-arguments-per-branch 10 --rand
 	--nodebug: [OPTIONAL] no debugging information is printed on the stdout
 	--batch-mode: [OPTIONAL] please add this option when running an experiments where the script is called
 					many times. Adding this option will prevent the script from saving too many details about each graph
-	--fractional: [OPTIONAL] whether we should use infinite precision for numbers 
 
 Bye.
 	"""
@@ -111,7 +110,7 @@ Bye.
 		import sys
 		argv = sys.argv[1:]
 		if len(argv) == 0: 
-			print("\033[91m{}\033[00m".format(DebateManager.help_string))
+			print(DebateReporter.fg_cyan.format(DebateManager.help_string))
 			sys.exit()
 		try:
 			i=0
@@ -152,12 +151,12 @@ Bye.
 					# following line serves to make up for
 					# the i+=2 which follows.
 					i-=1
-				elif argv[i] == '--fractional':
-					DebateManager.FRACTIONAL = True
-					# --fractional expects no value. So the 
-					# following line serves to make up for
-					# the i+=2 which follows.
-					i-=1
+				# elif argv[i] == '--fractional':
+				# 	DebateManager.FRACTIONAL = True
+				# 	# --fractional expects no value. So the 
+				# 	# following line serves to make up for
+				# 	# the i+=2 which follows.
+				# 	i-=1
 				elif argv[i] == '--universal-graph':
 					self.universal_graph_path = str(argv[i+1])
 				elif argv[i] == '--max-arguments-at-once':
@@ -165,8 +164,8 @@ Bye.
 				i+=2
 			#self.directory = self.getDirectory()
 		except Exception as e:
-			print(f"\x1b[41m {e}\033[00m")
-			print(DebateManager.help_string)
+			print(DebateReporter.fg_red.format(e))
+			print(DebateReporter.fg_cyan.format(DebateManager.help_string))
 			sys.exit()
 
 	def saveExperimental(self,round,times):
@@ -450,7 +449,8 @@ class AgentPool:
 				self.context.public_graph.add_edge(attacker, attacked)
 				self.context.universal_graph.nodes[attacker]["played"] = True
 				move.append((attacker, attacked))
-				if DebateManager.IN_DEBUG_MODE: print(self.context.reporter.inform(f"{agent.name} say {attacker} to attack {attacked}."))
+				if  not DebateManager.BATCH_MODE: 
+					print(self.context.reporter.inform(f"{agent.name} say {attacker} to attack {attacked}."))
 			self.context.semantic.update_public_graph(move)
 			someone_spoke = True
 			debate_manager.chaine+=f"{','.join([str(attacker) for attacker, _ in move])};"
