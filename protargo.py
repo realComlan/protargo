@@ -14,14 +14,14 @@ class DebateManager:
 	instance = None
 	# By default, we are in debug mode
 	IN_DEBUG_MODE = True
-	BATCH_MODE = False
+	IN_BATCH_MODE = False
 	# FRACTIONAL = False
 	help_string = """
 This is Protargo 1.0. Thanks for using it.	
 
 Example command:
 
-python3 main.py --agents 10 --root-branch 5 --max-arguments-per-branch 10 --rand-seed 123 --max-arguments-at-once 2 --nodebug --fractional
+python3 main.py --agents 10 --root-branch 5 --max-arguments-per-branch 10 --rand-seed 123 --max-arguments-at-once 2 --nodebug
 
 	Details:
 
@@ -57,7 +57,7 @@ Bye.
         # i.e. this field is used to 
         # build each line of the csv file that describes 
         # the dynamics of the debate.
-		self.chaine = ""
+		self.debate_details = ""
         # This field is the random seed. It is a required parameter 
         # at the execution of the script. No default value.
 		self.seed = -1
@@ -82,27 +82,7 @@ Bye.
 						universal_graph_provided=self.universal_graph_path)
         # The maximum number of arguments to be played at once
 		self.context.max_arguments_at_once = self.max_arguments_at_once
-
-	def getDirectory(self):
-		"""
-        This function is used to create the directory where all the results of the running of 
-        debates are stored. The details of personal graphs of all agents as well as the details 
-        of the execution of the protocol (which arguments each debator played, which was the value 
-        of the issue before and after the did play their argument.
-	
-		If the script is launched with the option --batch-mode (when running experiments where the script is 
-		called a great number of times), then we turn off the saving of the details of the execution of the 
-		debate.
-        """
-		#if DebateManager.BATCH_MODE: return False
-		directory = "protocol-arg"+str(datetime.datetime.now())
-		print(directory)
-		if not os.path.exists(f"graphs/{directory}"):
-			os.mkdir(f"graphs/{directory}")
-			return f"graphs/{directory}"
-		return f"graphs/{directory}" 
 		
-
 	def parse_inputs(self):
 		"""
 		Here we handle the parameters passed to the script 
@@ -146,42 +126,70 @@ Bye.
 					# the i+=2 which follows.
 					i-=1
 				elif argv[i] == '--batch-mode':
-					DebateManager.BATCH_MODE = True
+					DebateManager.IN_BATCH_MODE = True
 					# --batch-mode expects no value. So the 
 					# following line serves to make up for
 					# the i+=2 which follows.
 					i-=1
-				# elif argv[i] == '--fractional':
-				# 	DebateManager.FRACTIONAL = True
-				# 	# --fractional expects no value. So the 
-				# 	# following line serves to make up for
-				# 	# the i+=2 which follows.
-				# 	i-=1
 				elif argv[i] == '--universal-graph':
 					self.universal_graph_path = str(argv[i+1])
 				elif argv[i] == '--max-arguments-at-once':
 					self.max_arguments_at_once = 1 if int(argv[i+1]) < 1 else int(argv[i+1])
 				i+=2
-			#self.directory = self.getDirectory()
 		except Exception as e:
 			print(DebateReporter.fg_red.format(e))
 			print(DebateReporter.fg_cyan.format(DebateManager.help_string))
 			sys.exit()
 
-	def saveExperimental(self,round,times):
+	def build_storage_directory(self):
+		"""
+        This function is used to create the directory where all the results of the running of 
+        debates are stored. The details of personal graphs of all agents as well as the details 
+        of the execution of the protocol (which arguments each debator played, which was the value 
+        of the issue before and after the did play their argument.
+	
+		If the script is launched with the option --batch-mode (when running experiments where the script is 
+		called a great number of times), then we turn off the saving of the details of the execution of the 
+		debate.
+        """
+		dir_name = "debate-"+str(datetime.datetime.now())
+		if not os.path.exists(f"graphs/{dir_name}"):
+			os.mkdir(f"graphs/{dir_name}")
+		self.directory = f"graphs/{dir_name}"
+
+	def save_batch_experiment_records(self, round_counter, runtime, std_goal_values, std_from_final_issue_value, frequence_of_simulteaous_arg):
+		"""
+		This function is called when the current debate is launched as part of a large batch experiment where 
+		we don't want to save too many details about every single debate.
+		"""
 		if os.path.isfile('experimentation.csv'):
-			if DebateManager.IN_DEBUG_MODE: print("existe --------------------")
+			if DebateManager.IN_DEBUG_MODE: print("Experimental records file exists.")
 			with open('experimentation.csv', 'a') as file:
-				std_goal_values = self.get_std_of_goal_issue_values()
-				std_from_final_issue_value = self.get_deviation_from_final_issue_values()
-				file.write(f"{self.num_agents};{self.num_root_branch};{self.num_arguments};{self.seed};{self.max_arguments_at_once};{self.round_counter-1};{times }; {':'.join(self.frequence_of_simulteaous_arg)}; {float(self.public_graph.nodes[0]['weight'])}; {std_goal_values}; {std_from_final_issue_value}\n")
+				file.write(f"{self.num_agents};{self.num_root_branch};{self.num_arguments};{self.seed};{self.max_arguments_at_once};{round_counter-1};{runtime};{frequence_of_simulteaous_arg}; {float(self.context.public_graph.nodes[0]['weight'])}; {std_goal_values}; {std_from_final_issue_value}\n")
 		else:
-			if DebateManager.IN_DEBUG_MODE: print("existe pas -----------------")
-			with open('experimentation.csv','a') as file:
+			if DebateManager.IN_DEBUG_MODE: print("Experimental records file doesn't exist.")
+			with open('experimentation.csv', 'a') as file:
 				file.write("Number of agent;root branch;max-arguments-per-branch; rand-seed; max-arguments-at-once; number of round; runtime; freq-deep-arg; issue value; std_goal_issues_values; std_from_final_issue_value\n")
-				std_goal_values = self.get_std_of_goal_issue_values()
-				std_from_final_issue_value = self.get_deviation_from_final_issue_values()
-				file.write(f"{self.num_agents};{self.num_root_branch};{self.num_arguments};{self.seed};{self.max_arguments_at_once};{self.round_counter-1};{times}; {':'.join(self.frequence_of_simulteaous_arg)}; {float(self.public_graph.nodes[0]['weight'])}; {std_goal_values}; {std_from_final_issue_value}\n")
+				file.write(f"{self.num_agents};{self.num_root_branch};{self.num_arguments};{self.seed};{self.max_arguments_at_once};{round_counter-1};{runtime}; {frequence_of_simulteaous_arg}; {float(self.context.public_graph.nodes[0]['weight'])}; {std_goal_values}; {std_from_final_issue_value}\n")
+	
+	def save_single_experiment_records(self):
+		"""
+		This function is used to save the details of a debate when it is launched 
+		without the --batch-mode option i.e. when the debate is not part of a batch 
+		experiment where many other debates are run. In this instance where a debate is run
+		alone we save much more details about the execution, the debate agents personal graphs etc.
+		"""
+		# We build the storage directory only when running the debate in no --batch-mode.
+		self.build_storage_directory()
+		with open(f"{self.directory}/graph_univ.apx", "w") as file:
+		# with open(f"graphs/graph_univ.apx", "w") as file:
+			file.write(ArgumentGraph.export_apx(self.context.universal_graph))
+		for agent in self.context.agent_pool.agents:
+			#if DebateManager.IN_DEBUG_MODE: print(i)
+			with open(f"{self.directory}/{agent.name}.apx", "w") as file:
+				file.write(ArgumentGraph.export_apx(agent.own_graph))
+		with open(f"{self.directory}/details.csv", 'w') as file:
+			file.write(self.debate_details)
 	
 	def get_instance():
 		"""
@@ -243,19 +251,27 @@ class DebateContext:
 
 	def loop(self):
 		debate_manager = DebateManager.get_instance()
+		# This field is used to collect the statistics about the number of 
+		# simultaneous arguments played by each agent when had the right to speak.
+		# It will be rendered in the format of a:b:c:...:z, where a is the number of agents 
+		# who said nothing when they had the floor, b is the number of agents 
+		# who spoke only one argument, c is the number of agents who spoke 2 arguments,
+		# and so on and so forth. Thus the number of numbers concatenated with ':' is 
+		# equal to `max_arguments_at_once+1`
 		self.frequence_of_simulteaous_arg = [0]*(self.max_arguments_at_once+1)
 		#frequence_of_simulteaous_arg = [0]*debate_manager.max_arguments_at_once
-		debate_manager.chaine = "Round;"
+		debate_manager.debate_details = "Round;"
 		for agent in self.agent_pool.agents:
-			debate_manager.chaine += f"issue before;{agent.name};"
-		debate_manager.chaine += "issue;"
-		debate_manager.chaine += "Runtime;\n"
-		debate_manager.chaine += "Initial State;"
+			debate_manager.debate_details += f"issue before;{agent.name};"
+		debate_manager.debate_details += "issue;"
+		debate_manager.debate_details += "Runtime;\n"
+		debate_manager.debate_details += "Initial State;"
 		for agent in self.agent_pool.agents:
-			debate_manager.chaine += ' - '+';'+f'{agent.own_graph.nodes[0]["weight"]};'
-		debate_manager.chaine += f'{self.public_graph.nodes[0]["weight"]};'
-		debate_manager.chaine += '0;\n'
-		if DebateManager.IN_DEBUG_MODE: print(debate_manager.chaine)
+			debate_manager.debate_details += ' - '+';'+f'{agent.own_graph.nodes[0]["weight"]};'
+		debate_manager.debate_details += f'{self.public_graph.nodes[0]["weight"]};'
+		debate_manager.debate_details += '0;\n'
+		if DebateManager.IN_DEBUG_MODE:
+			print(debate_manager.debate_details)
 		# A counter for the number of rounds played before the consensus is reached.
 		self.round_counter = 0
 		# the debate stays open while there was at least one argument spoken 
@@ -263,55 +279,44 @@ class DebateContext:
 		debate_open = True
 		start_timeP = time()
 		while debate_open:
-			if DebateManager.IN_DEBUG_MODE:
+			if not DebateManager.IN_BATCH_MODE:
 				print()
 				print(self.reporter.fg_green.format(f"############      ROUND {self.round_counter+1}     #############"))
 				print()
 			# The reporter incrementally builds a new line for CSV file
-			# using this "chaine" field.
-			debate_manager.chaine += f"ROUND {self.round_counter+1};"
+			# using this "debate_details" field.
+			debate_manager.debate_details += f"ROUND {self.round_counter+1};"
 			start_time = time()
 			# Let each agent in the pool play their best arguments
 			debate_open = self.agent_pool.play()
 			end_time = time()
-			debate_manager.chaine += f'{self.public_graph.nodes[0]["weight"]};'
-			debate_manager.chaine += f'{end_time-start_time};\n'
+			debate_manager.debate_details += f'{self.public_graph.nodes[0]["weight"]};'
+			debate_manager.debate_details += f'{end_time-start_time};\n'
 			# Update the counter.
 			self.round_counter+=1
 		end_timeP = time()
-		if DebateManager.IN_DEBUG_MODE: print(debate_manager.chaine)
-		# self.context.reporter.persist()
-		#with open(f"{debate_manager.directory}/details.csv", 'w') as f:
-			#f.write(debate_manager.chaine)
-		###
-		round=self.round_counter-1
-		times=end_timeP - start_timeP
-		
-		#debate_manager.saveExperimental(round=round,times=times)
-		"""if os.path.isfile('experiementation.csv'):
-			with open('experiementation.csv','a') as file:
-				file.write(f"{debate_manager.num_agents};{debate_manager.num_root_branch};{debate_manager.num_arguments};{debate_manager.seed};{debate_manager.max_arguments_at_once};{round};{end_timeP - start_timeP };{self.public_graph.nodes[0]['weight']};\n")
-		if not DebateManager.BATCH_MODE:
-			with open(f"{debate_manager.directory}/details.csv", 'w') as f:
-				f.write(debate_manager.chaine)"""
-			###
-		self.frequence_of_simulteaous_arg = [str(i) for i in self.frequence_of_simulteaous_arg][:20]
+		runtime = end_timeP-start_timeP
 
-		if os.path.isfile('experimentation.csv'):
-			if DebateManager.IN_DEBUG_MODE: print("existe --------------------")
-			with open('experimentation.csv', 'a') as file:
-				std_goal_values = self.get_std_of_goal_issue_values()
-				std_from_final_issue_value = self.get_deviation_from_final_issue_values()
-				file.write(f"{debate_manager.num_agents};{debate_manager.num_root_branch};{debate_manager.num_arguments};{debate_manager.seed};{debate_manager.max_arguments_at_once};{self.round_counter-1};{end_timeP-start_timeP }; {':'.join(self.frequence_of_simulteaous_arg)}; {float(self.public_graph.nodes[0]['weight'])}; {std_goal_values}; {std_from_final_issue_value}\n")
-		else:
-			if DebateManager.IN_DEBUG_MODE: print("existe pas -----------------")
-			with open('experimentation.csv','a') as file:
-				file.write("Number of agent;root branch;max-arguments-per-branch; rand-seed; max-arguments-at-once; number of round; runtime; freq-deep-arg; issue value; std_goal_issues_values; std_from_final_issue_value\n")
-				std_goal_values = self.get_std_of_goal_issue_values()
-				std_from_final_issue_value = self.get_deviation_from_final_issue_values()
-				file.write(f"{debate_manager.num_agents};{debate_manager.num_root_branch};{debate_manager.num_arguments};{debate_manager.seed};{debate_manager.max_arguments_at_once};{self.round_counter-1};{end_timeP-start_timeP }; {':'.join(self.frequence_of_simulteaous_arg)}; {float(self.public_graph.nodes[0]['weight'])}; {std_goal_values}; {std_from_final_issue_value}\n")
-		#ArgumentGraph().save_graph()
 		if DebateManager.IN_DEBUG_MODE: 
+			print(debate_manager.debate_details)
+		# Here we go saving the details of the debate execution if 
+		# this is not launched in batch-mode in which case there
+		# may be hundreds of debates launched and saving the details
+		# of each of them may overrun the capacity of the computer memory
+		if not DebateManager.IN_BATCH_MODE:
+			debate_manager.save_single_experiment_records()
+
+		if DebateManager.IN_BATCH_MODE:
+			# Here we go rendering this field in the format a:b:c:...:z described at the
+			# beginning of this method
+			self.frequence_of_simulteaous_arg = [str(i) for i in self.frequence_of_simulteaous_arg][:30]
+			self.frequence_of_simulteaous_arg = ':'.join(self.frequence_of_simulteaous_arg)
+			debate_manager.save_batch_experiment_records(round_counter=self.round_counter,\
+					   								runtime=runtime,\
+					   								std_goal_values=self.get_std_of_goal_issue_values(),\
+					   								std_from_final_issue_value=self.get_deviation_from_final_issue_values(),\
+													frequence_of_simulteaous_arg=self.frequence_of_simulteaous_arg)
+		if  not DebateManager.IN_BATCH_MODE:
 			print(self.reporter.bg_cyan.format("Debate finished in {} rounds.".format(self.round_counter-1)))
 			print(f"Final issue value: {float(self.public_graph.nodes[0]['weight'])}.")
 
@@ -406,7 +411,6 @@ class DebateContext:
 #################################
 #	Debate Agents World
 #################################
-
 class AgentPool:
 
 	def __init__(self, num_agents=3):
@@ -431,29 +435,29 @@ class AgentPool:
 
 	def play(self):
 		someone_spoke = False
-		debate_manager = DebateManager.get_instance()
+		self.debate_manager = DebateManager.get_instance()
+		
 		for agent in self.agents:
-			debate_manager.chaine+='{};'.format(self.context.public_graph.nodes[0]["weight"])
+			self.debate_manager.debate_details+=f'{self.context.public_graph.nodes[0]["weight"]};'
 			move = []
 			arguments_spoken = agent.play()
 			if arguments_spoken:
-				debate_manager.context.frequence_of_simulteaous_arg[len(arguments_spoken)-1]+=1
-            #print(f"arguments spoken {arguments_spoken} by {agent.name}")
+				self.context.frequence_of_simulteaous_arg[len(arguments_spoken)-1]+=1
 			# (s)he will pass. Who is next...
 			if not arguments_spoken: 
-				debate_manager.context.frequence_of_simulteaous_arg[0]+=1
-				debate_manager.chaine+='-;'
+				self.debate_manager.context.frequence_of_simulteaous_arg[0]+=1
+				self.debate_manager.debate_details+='-;'
 				continue
 			for i in range(len(arguments_spoken)-1):
 				attacker, attacked = arguments_spoken[i+1], arguments_spoken[i]
 				self.context.public_graph.add_edge(attacker, attacked)
 				self.context.universal_graph.nodes[attacker]["played"] = True
 				move.append((attacker, attacked))
-				if  not DebateManager.BATCH_MODE: 
+				if  not DebateManager.IN_BATCH_MODE: 
 					print(self.context.reporter.inform(f"{agent.name} say {attacker} to attack {attacked}."))
 			self.context.semantic.update_public_graph(move)
 			someone_spoke = True
-			debate_manager.chaine+=f"{','.join([str(attacker) for attacker, _ in move])};"
+			self.debate_manager.debate_details+=f"{','.join([str(attacker) for attacker, _ in move])};"
 		# We return whether some agent has had a say during the current round or not.
 		# This will help to decide when to stop the debate because when no new argument is 
 		# presented at a particular round, none will be added late: the debate is over.
@@ -528,6 +532,11 @@ class PluralSpeechAgent(AbstractAgent):
 		super().__init__(name)
 
 	def create_protocol(self):
+		"""
+		If the strategy of the agent should change you may create a new
+		class inheriting from AbstractProtocol and implement the 
+		possible_moves() and best_move() methods to reflect the new strategy
+		"""
 		return PluralSpeechProtocol()
 
 #################################
@@ -535,7 +544,14 @@ class PluralSpeechAgent(AbstractAgent):
 #################################
 
 class ProtocolPool:
-
+	"""
+	This class is as a provision for future versions of the code
+	where different agent would play by different strategies. 
+	In that case, the different protocols would be implemented as
+	derived from the AbstractProtocol class and would would implement
+	the possible_moves() and best_move() methods to reflect their own 
+	strategy of choice
+	"""
 	def __init__(self):
 		self.protocols = []
 
@@ -561,16 +577,16 @@ class AbstractProtocol:
 		self.possible_moves = []
 
 	def generate_possible_moves(self):
-		
-		"""The possible moves are all attacker --> attacked such that:
+		"""
+		The possible moves are all attacker --> attacked such that:
 			- The attacker (attacking argument) is known to the current agent
 			- The attacker has not been proposed to the public graph yet
 			- The attacked is in the public_graph already
 		"""
-		self.possible_moves = [(attacker, attacked) for (attacker, attacked) in self.own_graph.edges \
-				if attacker in self.own_graph \
-					and not self.context.universal_graph.nodes[attacker]["played"] \
-					and attacked in self.public_graph.nodes]
+		self.possible_moves = [(attacker, attacked) \
+			 for (attacker, attacked) in self.own_graph.edges \
+				if not self.context.universal_graph.nodes[attacker]["played"] \
+					and self.context.universal_graph.nodes[attacked]["played"]]
 
 	def possible_moves(self):
 		pass
@@ -596,6 +612,13 @@ class AbstractProtocol:
 	def get_own_graph(self):
 		return self.own_graph
 class PluralSpeechProtocol(AbstractProtocol):
+	"""
+	This protocol strategy is the basic protocol strategy where:
+	- agents are allowed to play multiple aligned arguments
+	- agents try to bring the value of the issue as close as possible 
+	   to their own issue value
+	- the H-categorizer semantic is used to score the different arguments
+	"""
 
 	def __init__(self):
 		super().__init__()
@@ -679,6 +702,8 @@ class BasicSemantic(AbstractSemantic):
 			# graph.add_edge(attacker, attacked)
 			graph.nodes[attacker]["weight"] = 1
 			graph.nodes[attacked]["weight"] = Fraction(1, 1+sum([graph.nodes[_]["weight"] for _ in graph.predecessors(attacked)]))
+			# Mark the attacker as played
+			DebateContext.get_instance().universal_graph.nodes[attacker]["played"] = True
 			# which argument is the attacked argument attacking?
 			v = list(graph.successors(attacked))
 			# while the attacked argument is attacking some other argument
@@ -819,49 +844,42 @@ class ArgumentGraph:
 	def graph_name_generation(graph, ext, id=0):
 		return graph_name_generation(graph, ext, id=0)
 
-	# def export_apx(graph):
-	# 	export_apx(graph)
+	def export_apx(graph):
+		return export_apx(graph)
 
 	# def save_graph(graph, path, ext, id=0):
 	# 	save_graph(graph, path, ext, id=0)
 
-	def save_graph(self):
-		
+	def save_debate_details():
 		# If the script is run is batch mode then 
 		# we will not save all these details on the disk
-		#if DebateManager.BATCH_MODE: return False
-		#The aim of this method is to store the graph of the differents agents to a separeted file in the same folder 
+		# if DebateManager.IN_BATCH_MODE: return False
+		# The aim of this method is to store the graph of the differents agents to a separeted file in the same folder 
 		debate_manager = DebateManager.get_instance()
-		directory = debate_manager.getDirectory()
-		"""if not os.path.exists(f"graphs/{directory}"):
-			os.mkdir(f"graphs/{directory}")"""
-		with open(f"{directory}/graph_univ.apx","w") as f:
-			f.write(self.export_apx(debate_manager.context.universal_graph))
+		debate_manager.build_storage_directory()
+
+		with open(f"{debate_manager.directory}/graph_univ.apx","w") as file:
+			file.write(ArgumentGraph.export_apx(debate_manager.context.universal_graph))
 		for agent in debate_manager.context.agent_pool.agents:
 			#if DebateManager.IN_DEBUG_MODE: print(i)
-			with open(f"{directory}/{agent.name}.apx","w") as f:
-				f.write(self.export_apx(agent.own_graph))
-		with open(f"{directory}/details.csv", 'w') as f:
-				f.write(debate_manager.chaine)
+			with open(f"{debate_manager.directory}/{agent.name}.apx","w") as file:
+				file.write(ArgumentGraph.export_apx(agent.own_graph))
+		with open(f"{debate_manager.directory}/details.csv", 'w') as file:
+				file.write(debate_manager.debate_details)
 		    
-	def export_apx(self,graph):
-		"""
-		Function to convert a given graph to aspartix format (apx).
-		"""
-		graph_apx = ""
-		for arg in graph:
-			graph_apx += "arg(" + str(arg) + ").\n"
-		#for a,b in graph.adjacency():
-			#for c, d in b.items():
-				#pass
-				#print(a,c,d)
-		#print("graph adjacency : ",graph.adjacency())
-		for arg1, dicoAtt in graph.adjacency():
-			if dicoAtt:
-				for arg2, eattr in dicoAtt.items():
-					graph_apx += "att(" + str(arg1) + "," + str(arg2) + ").\n"
-		if DebateManager.IN_DEBUG_MODE: print(graph_apx)
-		return graph_apx
+	# def export_apx(self,graph):
+	# 	"""
+	# 	Function to convert a given graph to aspartix format (apx).
+	# 	"""
+	# 	graph_apx = ""
+	# 	for arg in graph:
+	# 		graph_apx += "arg(" + str(arg) + ").\n"
+	# 	for arg1, dicoAtt in graph.adjacency():
+	# 		if dicoAtt:
+	# 			for arg2, eattr in dicoAtt.items():
+	# 				graph_apx += "att(" + str(arg1) + "," + str(arg2) + ").\n"
+	# 	if DebateManager.IN_DEBUG_MODE: print(graph_apx)
+	# 	return graph_apx
 
 ###########################################
 #	Debate Reporter World

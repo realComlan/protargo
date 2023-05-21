@@ -17,7 +17,7 @@ Please run the following commands prior to running the scripts in this directory
 
 This is an example showing how to run the script: 	
 
- python3 main.py --agents 10 --root-branch 5 --max-arguments-per-branch 10 --rand-seed 123 --max-arguments-at-once 2 --nodebug --fractional
+ `python3 main.py --agents 10 --root-branch 5 --max-arguments-per-branch 10 --rand-seed 123 --max-arguments-at-once 2 --nodebug --fractional`
 
     Details:
 

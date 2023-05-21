@@ -1,4 +1,7 @@
+"""
+@author Jérôme Delobelle
 
+"""
 import sys
 import random
 import os.path
