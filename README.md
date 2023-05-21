@@ -1,11 +1,11 @@
 # protargo: Experimentation on the dynamics of argumentation protocols
 
-#1. Context
+## 1 . Context
 
 This project serves as the framework for experimentations on various strategies used in multiagent argumentation 
 and their influence on the performance of the agents. 
 
-#2. Setup
+## 2. Setup
 
 Please run the following commands prior to running the scripts in this directory:
 
@@ -13,7 +13,7 @@ Please run the following commands prior to running the scripts in this directory
 
 `$ pip install numpy -U`
 
-#2. How to run the code 
+## 3. How to run the code 
 
 This is an example showing how to run the script: 	
 
@@ -37,7 +37,7 @@ This is an example showing how to run the script:
  This is Protargo 1.0. Thanks for using it.    
 
 
-#2. Results
+## 4. Results
 
 Results will be prensented here soon...
 
