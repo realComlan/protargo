@@ -48,6 +48,7 @@ if __name__ == "__main__":
         if root_branch * max_arguments_per_branch < max_arguments_at_once: 
             continue
         print(f"Experiment {experiment_counter}")
-        print(f"Command: python3 main.py --agents {agent_num} --root-branch {root_branch} --max-arguments-per-branch {max_arguments_per_branch} --rand-seed {rand_seed} --max-arguments-at-once {max_arguments_at_once} --nodebug --batch-mode")
-        os.system(f"python3 main.py --agents {agent_num} --root-branch {root_branch} --max-arguments-per-branch {max_arguments_per_branch} --rand-seed {rand_seed} --max-arguments-at-once {max_arguments_at_once} --nodebug --batch-mode")
-        experiment_counter += 1
+        command = f"Command: python3 main.py --agents {agent_num} --root-branch {root_branch} --max-arguments-per-branch {max_arguments_per_branch} --rand-seed {rand_seed} --max-arguments-at-once {max_arguments_at_once} --nodebug --batch-mode"
+        print(command)
+        os.system(command)
+        experiment_counter+=1
