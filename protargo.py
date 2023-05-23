@@ -713,6 +713,21 @@ class BasicSemantic(AbstractSemantic):
 				graph.nodes[v]["weight"] = Fraction(1, 1+sum([graph.nodes[_]["weight"] for _ in graph.predecessors(v)]))
 				v = list(graph.successors(v))
 
+	def update_public_graph(self, move):
+		"""
+		Updating the graph weights from the leaves in
+		"""
+		return self.forward_update_graph(self.context.public_graph, move)
+	
+	def backward_update_graph(self, graph, root=0):
+		"""
+		Updating the graph weights from the issue out
+		"""
+		for predecessor in graph.predecessors(root):
+			BasicSemantic.backward_update_graph(self, graph, predecessor)
+		#graph.nodes[root]["weight"] = 1/(1+sum([graph.nodes[predecessor]["weight"] for predecessor in graph.predecessors(root)]))
+		graph.nodes[root]["weight"] = Fraction(1, (1+sum([graph.nodes[predecessor]["weight"] for predecessor in graph.predecessors(root)])))
+
 	def compute_semantic_weight(self, public_graph, argument, params=None):
 		"""
 		This is the function to be updated when the only thing that changes
@@ -807,24 +822,7 @@ class BasicSemantic(AbstractSemantic):
 				max_deep = deep_arg
 		return [argument] + max_deep
 
-	def update_public_graph(self, move):
-		"""
-		Updating the graph weights from the leaves in
-		"""
-		return self.forward_update_graph(self.context.public_graph, move)
-	
-	def backward_update_graph(self, graph, root=0):
-		"""
-		Updating the graph weights from the issue out
-		"""
-		for predecessor in graph.predecessors(root):
-			BasicSemantic.backward_update_graph(self, graph, predecessor)
-		#graph.nodes[root]["weight"] = 1/(1+sum([graph.nodes[predecessor]["weight"] for predecessor in graph.predecessors(root)]))
-		graph.nodes[root]["weight"] = Fraction(1, (1+sum([graph.nodes[predecessor]["weight"] for predecessor in graph.predecessors(root)])))
 
-
-	def semantic_weight(self, graph, argument):
-		pass 
 
 ########################################
 #	Debate Argument graphs World
