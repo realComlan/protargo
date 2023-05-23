@@ -165,12 +165,12 @@ Bye.
 		if os.path.isfile('experimentation.csv'):
 			if DebateManager.IN_DEBUG_MODE: print("Experimental records file exists.")
 			with open('experimentation.csv', 'a') as file:
-				file.write(f"{self.num_agents};{self.num_root_branch};{self.num_arguments};{self.seed};{self.max_arguments_at_once};{round_counter-1};{runtime};{frequence_of_simulteaous_arg}; {float(self.context.public_graph.nodes[0]['weight'])}; {std_goal_values}; {std_from_final_issue_value}\n")
+				file.write(f"{self.num_agents};{self.num_root_branch};{self.num_arguments};{self.seed};{self.max_arguments_at_once};{round_counter-1};{runtime};{frequence_of_simulteaous_arg};{float(self.context.public_graph.nodes[0]['weight'])};{std_goal_values};{std_from_final_issue_value}\n")
 		else:
 			if DebateManager.IN_DEBUG_MODE: print("Experimental records file doesn't exist.")
 			with open('experimentation.csv', 'a') as file:
 				file.write("Number of agent;root branch;max-arguments-per-branch; rand-seed; max-arguments-at-once; number of round; runtime; freq-deep-arg; issue value; std_goal_issues_values; std_from_final_issue_value\n")
-				file.write(f"{self.num_agents};{self.num_root_branch};{self.num_arguments};{self.seed};{self.max_arguments_at_once};{round_counter-1};{runtime}; {frequence_of_simulteaous_arg}; {float(self.context.public_graph.nodes[0]['weight'])}; {std_goal_values}; {std_from_final_issue_value}\n")
+				file.write(f"{self.num_agents};{self.num_root_branch};{self.num_arguments};{self.seed};{self.max_arguments_at_once};{round_counter-1};{runtime};{frequence_of_simulteaous_arg};{float(self.context.public_graph.nodes[0]['weight'])};{std_goal_values};{std_from_final_issue_value}\n")
 	
 	def save_single_experiment_records(self):
 		"""
@@ -297,7 +297,7 @@ class DebateContext:
 		end_timeP = time()
 		runtime = end_timeP-start_timeP
 
-		if DebateManager.IN_DEBUG_MODE: 
+		if DebateManager.IN_DEBUG_MODE:
 			print(debate_manager.debate_details)
 		# Here we go saving the details of the debate execution if 
 		# this is not launched in batch-mode in which case there
@@ -622,7 +622,7 @@ class PluralSpeechProtocol(AbstractProtocol):
 
 	def __init__(self):
 		super().__init__()
-		self.name = 'BasicProtocol'
+		self.name = 'PluralSpeechProtocol'
 		self.max_arguments_at_once = self.context.max_arguments_at_once
 		
 	def best_move(self):
@@ -823,7 +823,6 @@ class BasicSemantic(AbstractSemantic):
 		return [argument] + max_deep
 
 
-
 ########################################
 #	Debate Argument graphs World
 ########################################
@@ -844,9 +843,6 @@ class ArgumentGraph:
 
 	def export_apx(graph):
 		return export_apx(graph)
-
-	# def save_graph(graph, path, ext, id=0):
-	# 	save_graph(graph, path, ext, id=0)
 
 	def save_debate_details():
 		# If the script is run is batch mode then 
