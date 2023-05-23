@@ -267,8 +267,8 @@ class DebateContext:
 		debate_manager.debate_details += "Runtime;\n"
 		debate_manager.debate_details += "Initial State;"
 		for agent in self.agent_pool.agents:
-			debate_manager.debate_details += ' - '+';'+f'{agent.own_graph.nodes[0]["weight"]};'
-		debate_manager.debate_details += f'{self.public_graph.nodes[0]["weight"]};'
+			debate_manager.debate_details += ' - '+';'+f'{float(agent.own_graph.nodes[0]["weight"])};'
+		debate_manager.debate_details += f'{float(self.public_graph.nodes[0]["weight"])};'
 		debate_manager.debate_details += '0;\n'
 		if DebateManager.IN_DEBUG_MODE:
 			print(debate_manager.debate_details)
@@ -290,7 +290,7 @@ class DebateContext:
 			# Let each agent in the pool play their best arguments
 			debate_open = self.agent_pool.play()
 			end_time = time()
-			debate_manager.debate_details += f'{self.public_graph.nodes[0]["weight"]};'
+			debate_manager.debate_details += f'{float(self.public_graph.nodes[0]["weight"])};'
 			debate_manager.debate_details += f'{end_time-start_time};\n'
 			# Update the counter.
 			self.round_counter+=1
@@ -438,7 +438,7 @@ class AgentPool:
 		self.debate_manager = DebateManager.get_instance()
 		
 		for agent in self.agents:
-			self.debate_manager.debate_details+=f'{self.context.public_graph.nodes[0]["weight"]};'
+			self.debate_manager.debate_details+=f'{float(self.context.public_graph.nodes[0]["weight"])};'
 			move = []
 			arguments_spoken = agent.play()
 			if arguments_spoken:
