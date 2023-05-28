@@ -443,8 +443,8 @@ class AgentPool:
 			arguments_spoken = agent.play()
 			if arguments_spoken:
 				self.context.frequence_of_simulteaous_arg[len(arguments_spoken)-1]+=1
-			# (s)he will pass. Who is next...
 			if not arguments_spoken: 
+				# (s)he will pass. Who is next...
 				self.debate_manager.context.frequence_of_simulteaous_arg[0]+=1
 				self.debate_manager.debate_details+='-;'
 				continue
@@ -658,7 +658,8 @@ class PluralSpeechProtocol(AbstractProtocol):
 				best_move = best_deep_argument
 				min_gap = new_gap
 
-		if DebateManager.IN_DEBUG_MODE: print("possible moves (attacker, attacked): ", self.possible_moves)
+		if DebateManager.IN_DEBUG_MODE: 
+			print("possible moves (attacker, attacked): ", self.possible_moves)
 
 		return best_move
 
