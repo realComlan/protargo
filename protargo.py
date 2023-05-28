@@ -460,7 +460,7 @@ class AgentPool:
 			self.debate_manager.debate_details+=f"{','.join([str(attacker) for attacker, _ in move])};"
 		# We return whether some agent has had a say during the current round or not.
 		# This will help to decide when to stop the debate because when no new argument is 
-		# presented at a particular round, none will be added late: the debate is over.
+		# presented at a particular round, none will be added later: the debate is over.
 		return someone_spoke
 
 	def __len__(self):
