@@ -37,8 +37,4 @@ This is an example showing how to run the script:
  This is Protargo 1.0. Thanks for using it.    
 
 
-## 4. Results
-
-Results will be prensented here soon...
-
-Thank you for your feedback. 
+I would appreciate your feedback!
